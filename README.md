@@ -1,5 +1,5 @@
 # Fso Android Wrapper
-=======================
+=======================<br />
 Android wrapper for running Freespace Open on Android<br />
 <br />
 Note: This is experimental, do not expect a fully playable game out of this.<br />
@@ -17,11 +17,13 @@ How to use it
 -Get the prebuilt libs fso needs for android: https://drive.google.com/file/d/1Yq2veycfhbUKd3MGnRF3-S46Y2ntzHR_/view?usp=sharing<br />
 -Get the android NDK: https://developer.android.com/ndk/downloads<br />
 -Compile FSO with: <br />
->cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/path/to/ndk/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-31 -DEMBEDFILE_PATH=/path/to/embedfile -DFSO_PREBUILT_OVERRIDE=/path/to/prebuilt/libs/folder -G Ninja && sed -i 's/-lusb-1.0//' build.ninja
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/path/to/ndk/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-31 -DEMBEDFILE_PATH=/path/to/embedfile -DFSO_PREBUILT_OVERRIDE=/path/to/prebuilt/libs/folder -G Ninja && sed -i 's/-lusb-1.0//' build.ninja
 <br /><br />
 
 2) Copy: "libavcodec.so, libavformat.so, libavutil.so, libfs2_open_24_3_0_arm64.so, libopenal.so, libSDL2.so, libswresample.so, libswscale.so" from the bin folder to this project "Fso_Android_Wrapper\app\src\main\jniLibs\arm64-v8a" folder.
-<br /><br />
+<br />
+Make sure, if you compiled a "libfs2_open_24_3_0_arm64.so", that the same name without the extension and the starting "lib" is correctly written on the Mainactivity.java, getLibraries() right under "SDL2" and not anything else, like "fs2_open_24_3_0_arm64-DEBUG", otherwise SDL2 will fail to find the game lib.
+<br />
 
 3) If you want to add game asset files to the project directly to be used when this apk install, copy the files to "Fso_Android_Wrapper\app\src\main\assets" then edit "Fso_Android_Wrapper\app\src\main\java\com\shivansps\fsowrapper\MainActivity.java" and add the files to be copied at install here "copyGameAssetsOnce(Arrays.asList("fs2_demo.vpc", "shaders_v1.vp"));" If you are not adding files comment that line.
 <br /><br />

@@ -1,19 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:padding="16dp"
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/sample_text"
-        android:layout_width="wrap_content"
+	<TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Engine Build:"
+    android:layout_marginTop="12dp"/>
+
+    <Spinner
+	android:id="@+id/spEngine"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content" />
+	
+	<TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Working Folder"
+    android:layout_marginTop="12dp"/>
+
+	<Spinner
+    android:id="@+id/spWfolder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />
+		
+	<TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Additional arguments:"
+    android:layout_marginTop="12dp"/>
+
+	<EditText
+    android:id="@+id/etArgs"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:inputType="text"
+    android:singleLine="true"
+    android:imeOptions="actionDone"/>
+	
+	<TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Working folder"
+    android:layout_marginTop="12dp" />
+
+	<ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="150dp"
+    android:fillViewport="true">
+
+    <RadioGroup
+        android:id="@+id/rgRootSubdir"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="vertical"/>
+	</ScrollView>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+	<Button
+    android:id="@+id/btnInstall"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Instalar contenido"
+    android:layout_marginTop="8dp"
+    android:visibility="gone"/>
+
+    <Button
+        android:id="@+id/btnPlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Jugar"
+        android:layout_marginTop="24dp" />
+		
+	<Button
+    android:id="@+id/btnOpenLog"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Open Logfile"
+    android:layout_marginTop="12dp"/>
+</LinearLayout>

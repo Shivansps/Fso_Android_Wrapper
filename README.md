@@ -22,18 +22,13 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/path/to/ndk/build/cm
 
 2) Copy: "libavcodec.so, libavformat.so, libavutil.so, libfs2_open_24_3_0_arm64.so, libopenal.so, libSDL2.so, libswresample.so, libswscale.so" from the bin folder to this project "Fso_Android_Wrapper\app\src\main\jniLibs\arm64-v8a" folder.
 <br />
-Make sure, if you compiled a "libfs2_open_24_3_0_arm64.so", that the same name without the extension and the starting "lib" is correctly written on the Mainactivity.java, getLibraries() right under "SDL2" and not anything else, like "fs2_open_24_3_0_arm64-DEBUG", otherwise SDL2 will fail to find the game lib.
-<br />
 
-3) If you want to add game asset files to the project directly to be used when this apk install, copy the files to "Fso_Android_Wrapper\app\src\main\assets" then edit "Fso_Android_Wrapper\app\src\main\java\com\shivansps\fsowrapper\MainActivity.java" and add the files to be copied at install here "copyGameAssetsOnce(Arrays.asList("fs2_demo.vpc", "shaders_v1.vp"));" If you are not adding files comment that line.
-<br /><br />
-
-4) From here you can build/deploy/whatever
+3) From here you can build/deploy/whatever
 
 <br /><br />
 
-5) Default folder for game assets FSO can see and is accessible via USB folder browsing is "[phone][internal storage]\Android\data\com.shivansps.fsowrapper\files". Only internal storage, SD card is not usuable yet.
+4) Default folder for game assets FSO can see and is accessible via USB folder browsing is "[phone][internal storage]\Android\data\com.shivansps.fsowrapper\files". The path is the same for sdcard or external usb drives.
 
 <br /><br />
 
-6) Keep in mind OpenGL ES will never be able to run the built-in FSO shaders, you need to include/use external shaders changed for OpenGL ES. Current version here, just add the data folder to your files: https://github.com/user-attachments/files/22034438/shaders_gles_v1.zip
+5) Keep in mind OpenGL ES will never be able to run the built-in FSO shaders, you need to include/use external shaders changed for OpenGL ES. The wrapper already include 0_shaders_v1.vp in its assets folder and it will always copy it to any workfolder before launching the app.

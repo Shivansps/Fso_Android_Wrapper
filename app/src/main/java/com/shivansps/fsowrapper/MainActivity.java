@@ -1,10 +1,10 @@
 package com.shivansps.fsowrapper;
+import java.io.File;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import androidx.core.content.FileProvider;
 
-import android.os.Build;
-import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import java.util.regex.Matcher;
@@ -20,22 +20,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import android.view.View;
 import android.widget.RadioGroup;
-import android.os.StatFs;
 
 import com.shivansps.fsowrapper.tts.TTSManager;
 
-import androidx.annotation.Nullable;
-
 public class MainActivity extends AppCompatActivity {
     private static final String shader_file_name = "0_shaders_v1.vp";
+    private static final String FSO_INI = "fs2_open.ini";
     private static final String LOG_RELATIVE_PATH = "data/fs2_open.log";
     private Spinner spEngine;
     private List<EngineVariant> engineList = new ArrayList<>();
     private NativeLibScanner.Catalog catalog;
-    private Spinner spWfolder;
+    private Spinner spWorkingFolder;
     private RadioGroup rgRootSubdir;
     private String lastSelectedSubdir = "";
-    private List<StorageOption> wfolderOptions = new ArrayList<>();
+    private List<StorageOption> workingFolderOptions = new ArrayList<>();
     private static final List<String> baseFsoArguments = Arrays.asList(
             "-fps",
             "-no_large_shaders",
@@ -57,47 +55,37 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        wfolderOptions = StorageDetector.listOptions(this);
+        workingFolderOptions = StorageDetector.listOptions(this);
         ArrayAdapter<StorageOption> wfAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, wfolderOptions
+                this, android.R.layout.simple_spinner_item, workingFolderOptions
         );
         wfAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spWfolder.setAdapter(wfAdapter);
-    }
-
-    @Override protected void onDestroy()
-    {
-        TTSManager.shutdown();
-        super.onDestroy();
+        spWorkingFolder.setAdapter(wfAdapter);
     }
 
     private void DetectStorage()
     {
-        spWfolder = findViewById(R.id.spWfolder);
-        wfolderOptions = StorageDetector.listOptions(this);
+        spWorkingFolder = findViewById(R.id.spWfolder);
+        workingFolderOptions = StorageDetector.listOptions(this);
 
         ArrayAdapter<StorageOption> wfAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, wfolderOptions
+                this, android.R.layout.simple_spinner_item, workingFolderOptions
         );
         wfAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spWfolder.setAdapter(wfAdapter);
+        spWorkingFolder.setAdapter(wfAdapter);
 
-        spWfolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        spWorkingFolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 refreshRootSubdirList();
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        if (!wfolderOptions.isEmpty()) spWfolder.setSelection(0);
+        if (!workingFolderOptions.isEmpty()) spWorkingFolder.setSelection(0);
     }
 
     private static int generateViewIdCompat() {
-        if (android.os.Build.VERSION.SDK_INT >= 17) {
-            return android.view.View.generateViewId();
-        } else {
-            return (int) (System.nanoTime() & 0x7FFFFFFF);
-        }
+        return View.generateViewId();
     }
 
     private void setupOpenLogButton() {
@@ -152,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
         rgRootSubdir.clearCheck();
         rgRootSubdir.removeAllViews();
 
-        StorageOption sel = (StorageOption) spWfolder.getSelectedItem();
+        StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
         String w_folder = sel.path;
         java.io.File root = new java.io.File(w_folder);
 
@@ -228,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
             argv.addAll(extra);
 
             if (!containsFlag(extra, "-working_folder")) {
-                StorageOption sel = (StorageOption) spWfolder.getSelectedItem();
+                StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
                 if (sel != null && sel.path != null && !sel.path.isEmpty()) {
                     argv.add("-working_folder");
                     String actualRootPath = sel.path+ "/" + lastSelectedSubdir + "/";
@@ -249,9 +237,7 @@ public class MainActivity extends AppCompatActivity {
                 argv.add("dummy");
             }
 
-            if(!TTSManager.isReady()){
-                android.widget.Toast.makeText(this, "TTS engine is not ready.", android.widget.Toast.LENGTH_SHORT).show();
-            }
+            ensureIniPresent();
 
             Intent i = new Intent(this, GameActivity.class);
             i.putExtra("engineLibName", chosen.baseName);
@@ -338,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
         java.io.OutputStream out = null;
         try {
             in = getAssets().open(assetName);
-            out = new java.io.FileOutputStream(dest);
+            out = Files.newOutputStream(dest.toPath());
             byte[] buf = new byte[8192];
             int r;
             while ((r = in.read(buf)) != -1) {
@@ -349,6 +335,35 @@ public class MainActivity extends AppCompatActivity {
         } catch (java.io.IOException e) {
             e.printStackTrace();
             return false;
+        } finally {
+            try { if (in != null) in.close(); } catch (Exception ignored) {}
+            try { if (out != null) out.close(); } catch (Exception ignored) {}
+        }
+    }
+
+    private void ensureIniPresent() {
+        java.io.File dest = new java.io.File(getFilesDir(), FSO_INI);
+        if (dest.exists()) return;
+
+        copyAssetToFile(FSO_INI, dest);
+    }
+
+    private void copyAssetToFile(String assetName, File outFile) {
+        if (outFile.exists()) return;
+        java.io.InputStream in = null;
+        java.io.OutputStream out = null;
+        try {
+            if (outFile.getParentFile() != null && !outFile.getParentFile().exists()) {
+                outFile.getParentFile().mkdirs();
+            }
+            in = getAssets().open(assetName);
+            out = Files.newOutputStream(outFile.toPath());
+            byte[] buf = new byte[8192];
+            int r;
+            while ((r = in.read(buf)) != -1) out.write(buf, 0, r);
+            out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             try { if (in != null) in.close(); } catch (Exception ignored) {}
             try { if (out != null) out.close(); } catch (Exception ignored) {}

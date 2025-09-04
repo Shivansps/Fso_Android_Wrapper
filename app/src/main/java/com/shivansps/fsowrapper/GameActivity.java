@@ -48,18 +48,23 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (Build.VERSION.SDK_INT >= 24) {
-            try {
-                getWindow().setSustainedPerformanceMode(true);
-                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            } catch (Throwable ignored) {
-            }
+        try {
+            getWindow().setSustainedPerformanceMode(true);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } catch (Throwable ignored) {
         }
+        TTSManager.init(this);
         super.onCreate(savedInstanceState);
     }
 
     @Override protected void onPause() {
-        super.onPause();
         TTSManager.stop();
+        super.onPause();
+    }
+
+    @Override protected void onDestroy()
+    {
+        TTSManager.shutdown();
+        super.onDestroy();
     }
 }

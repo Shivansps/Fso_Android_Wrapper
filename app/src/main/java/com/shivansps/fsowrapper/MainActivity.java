@@ -2,6 +2,9 @@ package com.shivansps.fsowrapper;
 import java.util.Arrays;
 import java.util.List;
 import androidx.core.content.FileProvider;
+
+import android.os.Build;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import java.util.regex.Matcher;
@@ -17,6 +20,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import android.view.View;
 import android.widget.RadioGroup;
+import android.os.StatFs;
+
+import com.shivansps.fsowrapper.tts.TTSManager;
+
+import androidx.annotation.Nullable;
 
 public class MainActivity extends AppCompatActivity {
     private static final String shader_file_name = "0_shaders_v1.vp";
@@ -31,7 +39,8 @@ public class MainActivity extends AppCompatActivity {
     private static final List<String> baseFsoArguments = Arrays.asList(
             "-fps",
             "-no_large_shaders",
-            "-no_geo_effects"
+            "-no_geo_effects",
+            "-no_deferred"
     );
 
     @Override
@@ -54,6 +63,12 @@ public class MainActivity extends AppCompatActivity {
         );
         wfAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spWfolder.setAdapter(wfAdapter);
+    }
+
+    @Override protected void onDestroy()
+    {
+        TTSManager.shutdown();
+        super.onDestroy();
     }
 
     private void DetectStorage()
@@ -94,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         java.io.File logFile = new java.io.File(getFilesDir(), LOG_RELATIVE_PATH);
 
         if (!logFile.exists() || !logFile.isFile()) {
-            android.widget.Toast.makeText(this, "El log no existe todavía.", android.widget.Toast.LENGTH_SHORT).show();
+            android.widget.Toast.makeText(this, "The log file does not exist.", android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -200,7 +215,7 @@ public class MainActivity extends AppCompatActivity {
         EditText etArgs = findViewById(R.id.etArgs);
 
         btnPlay.setOnClickListener(v -> {
-            //play logic
+            // Click Play Logic
             EngineVariant chosen = (EngineVariant) spEngine.getSelectedItem();
             if (chosen == null) {
                 Toast.makeText(this, "First select a FSO version from the list.", Toast.LENGTH_SHORT).show();
@@ -232,6 +247,10 @@ public class MainActivity extends AppCompatActivity {
             if (!containsFlag(extra, "-mod")) {
                 argv.add("-mod");
                 argv.add("dummy");
+            }
+
+            if(!TTSManager.isReady()){
+                android.widget.Toast.makeText(this, "TTS engine is not ready.", android.widget.Toast.LENGTH_SHORT).show();
             }
 
             Intent i = new Intent(this, GameActivity.class);

@@ -1,5 +1,10 @@
 package com.shivansps.fsowrapper;
 import android.content.Intent;
+import android.os.Build;
+import android.os.Bundle;
+import android.view.WindowManager;
+
+import com.shivansps.fsowrapper.tts.TTSManager;
 
 import java.util.ArrayList;
 
@@ -39,5 +44,22 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        if (Build.VERSION.SDK_INT >= 24) {
+            try {
+                getWindow().setSustainedPerformanceMode(true);
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            } catch (Throwable ignored) {
+            }
+        }
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override protected void onPause() {
+        super.onPause();
+        TTSManager.stop();
     }
 }

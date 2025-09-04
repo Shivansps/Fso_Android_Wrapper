@@ -61,19 +61,11 @@
 	</ScrollView>
 
 	<Button
-    android:id="@+id/btnInstall"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="Instalar contenido"
-    android:layout_marginTop="8dp"
-    android:visibility="gone"/>
-
-    <Button
-        android:id="@+id/btnPlay"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Jugar"
-        android:layout_marginTop="24dp" />
+		android:id="@+id/btnPlay"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="24dp"
+		android:text="Play" />
 		
 	<Button
     android:id="@+id/btnOpenLog"
@@ -81,4 +73,5 @@
     android:layout_height="wrap_content"
     android:text="Open Logfile"
     android:layout_marginTop="12dp"/>
+
 </LinearLayout>

@@ -36,9 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private List<StorageOption> workingFolderOptions = new ArrayList<>();
     private static final List<String> baseFsoArguments = Arrays.asList(
             "-fps",
-            "-no_large_shaders",
-            "-no_geo_effects",
-            "-no_deferred"
+            "-no_geo_effects"
     );
 
     @Override

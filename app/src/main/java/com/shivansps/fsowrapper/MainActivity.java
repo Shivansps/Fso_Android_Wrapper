@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import androidx.core.content.FileProvider;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import java.util.regex.Matcher;
@@ -200,6 +202,9 @@ public class MainActivity extends AppCompatActivity {
         Button btnPlay = findViewById(R.id.btnPlay);
         EditText etArgs = findViewById(R.id.etArgs);
 
+        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+        etArgs.setText(sharedPref.getString("fso_args", ""));
+
         btnPlay.setOnClickListener(v -> {
             // Click Play Logic
             EngineVariant chosen = (EngineVariant) spEngine.getSelectedItem();
@@ -229,6 +234,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+
+            sharedPref.edit().putString("fso_args", userLine).apply();
 
             if (!containsFlag(extra, "-mod")) {
                 argv.add("-mod");

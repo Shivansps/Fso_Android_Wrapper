@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:id="@+id/overlay_root"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:clickable="false"
+android:focusable="false">
+
+
+	<Button
+		android:id="@+id/btnToggle"
+		android:layout_width="35dp"
+		android:layout_height="40dp"
+		android:layout_gravity="center|top"
+		android:layout_marginStart="0dp"
+		android:layout_marginTop="0dp"
+		android:alpha="0.3"
+		android:text="≡"
+		android:textAllCaps="false" />
+
+
+	<Button
+		android:id="@+id/btnEsc"
+		android:layout_width="48dp"
+		android:layout_height="40dp"
+		android:layout_gravity="center|top"
+		android:layout_marginTop="0dp"
+		android:layout_marginEnd="50dp"
+		android:alpha="0.3"
+		android:text="ESC"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnF3"
+		android:layout_width="48dp"
+		android:layout_height="40dp"
+		android:layout_gravity="center|top"
+		android:layout_marginStart="50dp"
+		android:layout_marginBottom="0dp"
+		android:alpha="0.3"
+		android:text="F3"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnAltH"
+		android:layout_width="60dp"
+		android:layout_height="40dp"
+		android:layout_gravity="right|top|end"
+		android:layout_marginStart="0dp"
+		android:layout_marginBottom="0dp"
+		android:alpha="0.3"
+		android:text="Alt+H"
+		android:textAllCaps="false"
+		android:textSize="12sp"
+		tools:layout_marginEnd="20dp" />
+
+	<Button
+		android:id="@+id/btnAltM"
+		android:layout_width="60dp"
+		android:layout_height="40dp"
+		android:layout_gravity="right|top|end"
+		android:layout_marginEnd="85dp"
+		android:alpha="0.3"
+		android:insetRight="0dp"
+		android:text="Alt+M"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnAltJ"
+		android:layout_width="60dp"
+		android:layout_height="40dp"
+		android:layout_gravity="right|top|end"
+		android:layout_marginEnd="150dp"
+		android:alpha="0.3"
+		android:insetRight="0dp"
+		android:text="Alt+J"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnTab"
+		android:layout_width="70dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="85dp"
+		android:layout_marginBottom="175dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="Tab"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnPlus"
+		android:layout_width="35dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="45dp"
+		android:layout_marginBottom="175dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="+"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnMinus"
+		android:layout_width="35dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="5dp"
+		android:layout_marginBottom="175dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="-"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnFireP"
+		android:layout_width="120dp"
+		android:layout_height="60dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="35dp"
+		android:layout_marginBottom="120dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="Fire Primaries"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnFireS"
+		android:layout_width="120dp"
+		android:layout_height="60dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="35dp"
+		android:layout_marginBottom="60dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="Fire Secondaries"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnCycleS"
+		android:layout_width="25dp"
+		android:layout_height="60dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="5dp"
+		android:layout_marginBottom="60dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="CS"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnCycleP"
+		android:layout_width="25dp"
+		android:layout_height="60dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="5dp"
+		android:layout_marginBottom="120dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="CP"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnQ"
+		android:layout_width="70dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="85dp"
+		android:layout_marginBottom="20dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="Q"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnX"
+		android:layout_width="70dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="10dp"
+		android:layout_marginBottom="20dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="X"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnT"
+		android:layout_width="30dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="160dp"
+		android:layout_marginBottom="25dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="T"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnF"
+		android:layout_width="30dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="160dp"
+		android:layout_marginBottom="55dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="F"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnE"
+		android:layout_width="30dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="160dp"
+		android:layout_marginBottom="85dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="E"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnB"
+		android:layout_width="30dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="160dp"
+		android:layout_marginBottom="115dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="B"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnH"
+		android:layout_width="30dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="160dp"
+		android:layout_marginBottom="145dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="H"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<Button
+		android:id="@+id/btnY"
+		android:layout_width="30dp"
+		android:layout_height="40dp"
+		android:layout_gravity="bottom|right|end"
+		android:layout_marginEnd="160dp"
+		android:layout_marginBottom="175dp"
+		android:alpha="0.2"
+		android:insetRight="0dp"
+		android:text="Y"
+		android:textAllCaps="false"
+		android:textSize="12sp" />
+
+	<com.shivansps.fsowrapper.overlay.RadialDpadView
+		android:id="@+id/dpad"
+		android:layout_width="180dp"
+		android:layout_height="180dp"
+		android:layout_gravity="bottom|start"
+		android:layout_marginStart="60dp"
+		android:layout_marginBottom="60dp"
+		android:clickable="true"
+		android:focusable="false" />
+
+</FrameLayout>

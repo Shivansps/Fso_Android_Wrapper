@@ -1,5 +1,10 @@
 package com.shivansps.fsowrapper;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
@@ -8,6 +13,7 @@ import androidx.core.content.FileProvider;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.widget.AdapterView;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,16 +42,13 @@ public class MainActivity extends AppCompatActivity {
     private RadioGroup rgRootSubdir;
     private String lastSelectedSubdir = "";
     private List<StorageOption> workingFolderOptions = new ArrayList<>();
-    private static final List<String> baseFsoArguments = Arrays.asList(
-            "-fps",
-            "-no_geo_effects"
-    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         rgRootSubdir = findViewById(R.id.rgRootSubdir);
+        //CopyFs2Demo();
         LoadFSOVersions();
         DetectStorage();
         CreatePlayButton();
@@ -61,6 +64,19 @@ public class MainActivity extends AppCompatActivity {
         );
         wfAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spWorkingFolder.setAdapter(wfAdapter);
+    }
+
+    private void CopyFs2Demo()
+    {
+        SharedPreferences p = getSharedPreferences("first_run", MODE_PRIVATE);
+        if (p.getBoolean("copied", false)) return;
+
+        File destDir = getExternalFilesDir(null);
+        if (destDir == null) destDir = getFilesDir();
+
+        copyAssetToFile("fs2_demo.vp", new File(destDir+"/fs2_demo", "fs2_demo.vp"));
+
+        p.edit().putBoolean("copied", true).apply();
     }
 
     private void DetectStorage()
@@ -199,11 +215,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void CreatePlayButton()
     {
+        String defaultArgs = "-fps -no_geo_effects";
         Button btnPlay = findViewById(R.id.btnPlay);
         EditText etArgs = findViewById(R.id.etArgs);
+        CheckBox touchControls = findViewById(R.id.touchControlsCheckBox);
 
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
-        etArgs.setText(sharedPref.getString("fso_args", ""));
+        etArgs.setText(sharedPref.getString("fso_args", defaultArgs));
+        touchControls.setChecked(sharedPref.getBoolean("touch_overlay", true));
 
         btnPlay.setOnClickListener(v -> {
             // Click Play Logic
@@ -212,11 +231,10 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "First select a FSO version from the list.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            ArrayList<String> argv = new ArrayList<>(baseFsoArguments);
 
-            String userLine = etArgs.getText() != null ? etArgs.getText().toString() : "";
+            String userLine = etArgs.getText() != null ? etArgs.getText().toString() : defaultArgs;
             java.util.List<String> extra = tokenizeArgs(userLine);
-            argv.addAll(extra);
+            ArrayList<String> argv = new ArrayList<>(extra);
 
             if (!containsFlag(extra, "-working_folder")) {
                 StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
@@ -236,6 +254,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             sharedPref.edit().putString("fso_args", userLine).apply();
+            sharedPref.edit().putBoolean("touch_overlay", touchControls.isChecked()).apply();
 
             if (!containsFlag(extra, "-mod")) {
                 argv.add("-mod");
@@ -247,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
             Intent i = new Intent(this, GameActivity.class);
             i.putExtra("engineLibName", chosen.baseName);
             i.putStringArrayListExtra("fsoArgs", argv);
+            i.putExtra("touchOverlay",touchControls.isChecked());
             startActivity(i);
         });
     }

@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "com.shivansps.fsowrapper"
-        minSdk = 31
+        minSdk = 28
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -16,7 +16,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags += "-std=c++14"
+                cppFlags += "-std=c++17"
             }
         }
     }

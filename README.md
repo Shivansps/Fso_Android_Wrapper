@@ -14,7 +14,7 @@ How to use it
 -Clone this repo/branch: https://github.com/Shivansps/fs2open.github.com/tree/android-build<br />
 -Follow the instructions here to get the dependencies https://github.com/scp-fs2open/fs2open.github.com/wiki/Building-on-Linux<br />
 -Build the embedfile, by building the FSO tools first. Follow the instrctions on the previous step but instead of the normal cmake command, use "cmake -DFSO_BUILD_TOOLS .."<br />
--Get the prebuilt libs fso needs for android: https://drive.google.com/file/d/1b2vJKFMfZhcspnSL-7ywq1LT2OHApuzZ/view?usp=sharing<br />
+-Get the prebuilt libs fso needs for android: https://github.com/Shivansps/Fso-Android-Prebuilts (also contain prebuilt FSO bins ready to use with this proyect)<br />
 -Get the android NDK: https://developer.android.com/ndk/downloads<br />
 -Compile FSO with: <br />
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/path/to/ndk/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-31 -DEMBEDFILE_PATH=/path/to/embedfile -DFSO_PREBUILT_OVERRIDE=/path/to/prebuilt/libs/folder -G Ninja && sed -i 's/-lusb-1.0//' build.ninja

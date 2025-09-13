@@ -3,7 +3,6 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.WindowManager;
 
 import com.shivansps.fsowrapper.overlay.RadialDpadView;
@@ -99,7 +98,6 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         View overlay = inflater.inflate(R.layout.overlay_controls, null);
         Button btnToggle = overlay.findViewById(R.id.btnToggle);
         RadialDpadView dpad = overlay.findViewById(R.id.dpad);
-        dpad.setMode(RadialDpadView.Mode.DIR8);
 
         // Button listeners
         // ESC
@@ -121,6 +119,10 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         // ALT+H
         Button btnALTH = overlay.findViewById(R.id.btnAltH);
         btnALTH.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_ALT_H));
+
+        // ALT+A
+        Button btnAltA = overlay.findViewById(R.id.btnAltA);
+        btnAltA.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_ALT_A));
 
         // Space
         Button btnSpace = overlay.findViewById(R.id.btnFireS);
@@ -182,17 +184,72 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         Button btnT = overlay.findViewById(R.id.btnT);
         btnT.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_T));
 
-        // Buttons that visibility are controlled by the toggle
-        View[] controlled = new View[] {
-                btnEsc, btnF3, dpad, btnALTJ, btnALTM, btnALTH, btnSpace, btnLCtrl,
-                btnCycleP, btnCycleS, btnTab, btnPlus, btnMinus, btnX, btnQ, btnY,
-                btnH, btnB, btnE, btnF, btnT };
+        // M
+        Button btnM = overlay.findViewById(R.id.btnM);
+        btnM.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_M));
 
+        // S
+        Button btnS = overlay.findViewById(R.id.btnS);
+        btnS.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_S));
+
+        // A
+        Button btnA = overlay.findViewById(R.id.btnA);
+        btnA.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_A));
+
+        // Z
+        Button btnZ = overlay.findViewById(R.id.btnZ);
+        btnZ.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_Z));
+
+        // Return
+        Button btnRet = overlay.findViewById(R.id.btnRet);
+        btnRet.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_BACKSPACE));
+
+        // Backslash
+        Button btnBackSlash = overlay.findViewById(R.id.btnBackSlash);
+        btnBackSlash.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_BACKSLASH));
+
+        // C+3+1
+        Button btnC31 = overlay.findViewById(R.id.btnC31);
+        btnC31.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_3_1));
+
+        // C+3+5
+        Button btnC35 = overlay.findViewById(R.id.btnC35);
+        btnC35.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_3_5));
+
+        // C+3+9
+        Button btnC39 = overlay.findViewById(R.id.btnC39);
+        btnC39.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_3_9));
+
+        // C+5
+        Button btnC5 = overlay.findViewById(R.id.btnC5);
+        btnC5.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_5));
+
+        // Buttons that visibility are controlled by the toggle
+        View[] topBar = new View[] {
+                btnEsc, btnF3, btnALTJ, btnALTM, btnALTH, btnAltA, btnC31, btnC35, btnC39, btnC5 };
+
+        View[] joystick = new View[] {
+                dpad, btnSpace, btnLCtrl, btnCycleP, btnCycleS, btnTab, btnS, btnA, btnZ, btnRet,
+                btnPlus, btnMinus, btnX, btnQ, btnY, btnH, btnB, btnE, btnF, btnT, btnM, btnBackSlash };
 
         btnToggle.setOnClickListener(v -> {
-            boolean hide = controlled[0].getVisibility() == View.VISIBLE;
-            for (View w : controlled) w.setVisibility(hide ? View.GONE : View.VISIBLE);
+            boolean topBarVisible = topBar[0].getVisibility() == View.VISIBLE;
+            boolean joystickVisible = joystick[0].getVisibility() == View.VISIBLE;
+
+            for (View w : topBar) w.setVisibility(
+                    topBarVisible && joystickVisible ? View.GONE : View.VISIBLE
+            );
+            for (View w : joystick) w.setVisibility(
+                    topBarVisible && !joystickVisible ? View.VISIBLE : View.GONE
+            );
         });
+
+        for (View w : topBar) w.setVisibility(
+                View.GONE
+        );
+        for (View w : joystick) w.setVisibility(
+                View.GONE
+        );
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,

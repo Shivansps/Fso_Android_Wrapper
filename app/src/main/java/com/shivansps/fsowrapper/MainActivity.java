@@ -1,15 +1,8 @@
 package com.shivansps.fsowrapper;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.List;
 import androidx.core.content.FileProvider;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.widget.AdapterView;
@@ -29,12 +22,12 @@ import java.util.Iterator;
 import android.view.View;
 import android.widget.RadioGroup;
 
-import com.shivansps.fsowrapper.tts.TTSManager;
-
 public class MainActivity extends AppCompatActivity {
-    private static final String shader_file_name = "0_shaders_v1.vp";
+    private static final String shader_file_name = "0_shaders_v2.vp";
+    private static final String demo_filename = "fs2_demo.vpc"; //empty to disable demo install function
     private static final String FSO_INI = "fs2_open.ini";
     private static final String LOG_RELATIVE_PATH = "data/fs2_open.log";
+    private static final String defaultArgs = "-fps -no_geo_effects -threads 0";
     private Spinner spEngine;
     private List<EngineVariant> engineList = new ArrayList<>();
     private NativeLibScanner.Catalog catalog;
@@ -48,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         rgRootSubdir = findViewById(R.id.rgRootSubdir);
-        //CopyFs2Demo();
+        if(!demo_filename.isEmpty()) CopyFs2Demo();
         LoadFSOVersions();
         DetectStorage();
         CreatePlayButton();
@@ -66,6 +59,60 @@ public class MainActivity extends AppCompatActivity {
         spWorkingFolder.setAdapter(wfAdapter);
     }
 
+    private void CreatePlayButton()
+    {
+        Button btnPlay = findViewById(R.id.btnPlay);
+        EditText etArgs = findViewById(R.id.etArgs);
+        CheckBox touchControls = findViewById(R.id.touchControlsCheckBox);
+
+        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+        etArgs.setText(sharedPref.getString("fso_args", defaultArgs));
+        touchControls.setChecked(sharedPref.getBoolean("touch_overlay", true));
+
+        btnPlay.setOnClickListener(v -> {
+            // Click Play Logic
+            EngineVariant chosen = (EngineVariant) spEngine.getSelectedItem();
+            if (chosen == null) {
+                Toast.makeText(this, "First select a FSO version from the list.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String userLine = etArgs.getText() != null ? etArgs.getText().toString() : defaultArgs;
+            java.util.List<String> extra = tokenizeArgs(userLine);
+            ArrayList<String> argv = new ArrayList<>(extra);
+
+            if (!containsFlag(extra, "-working_folder")) {
+                StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
+                if (sel != null && sel.path != null && !sel.path.isEmpty()) {
+                    argv.add("-working_folder");
+                    String actualRootPath = sel.path+ "/" + lastSelectedSubdir + "/";
+                    argv.add(actualRootPath);
+                    // delete old shader file
+                    deleteFileIfExist(actualRootPath+"0_shader_v1.vp");
+                    // copy
+                    boolean ok = ensureAssetPresent(shader_file_name, actualRootPath);
+                    if (!ok) {
+                        android.widget.Toast.makeText(this,
+                                "Unable to copy shader files to working folder.",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+            }
+
+            sharedPref.edit().putString("fso_args", userLine).apply();
+            sharedPref.edit().putBoolean("touch_overlay", touchControls.isChecked()).apply();
+
+            ensureIniPresent();
+
+            Intent i = new Intent(this, GameActivity.class);
+            i.putExtra("engineLibName", chosen.baseName);
+            i.putStringArrayListExtra("fsoArgs", argv);
+            i.putExtra("touchOverlay",touchControls.isChecked());
+            startActivity(i);
+        });
+    }
+
     private void CopyFs2Demo()
     {
         SharedPreferences p = getSharedPreferences("first_run", MODE_PRIVATE);
@@ -74,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         File destDir = getExternalFilesDir(null);
         if (destDir == null) destDir = getFilesDir();
 
-        copyAssetToFile("fs2_demo.vp", new File(destDir+"/fs2_demo", "fs2_demo.vp"));
+        copyAssetToFile(demo_filename, new File(destDir+"/fs2_demo", demo_filename));
 
         p.edit().putBoolean("copied", true).apply();
     }
@@ -213,64 +260,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void CreatePlayButton()
-    {
-        String defaultArgs = "-fps -no_geo_effects";
-        Button btnPlay = findViewById(R.id.btnPlay);
-        EditText etArgs = findViewById(R.id.etArgs);
-        CheckBox touchControls = findViewById(R.id.touchControlsCheckBox);
-
-        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
-        etArgs.setText(sharedPref.getString("fso_args", defaultArgs));
-        touchControls.setChecked(sharedPref.getBoolean("touch_overlay", true));
-
-        btnPlay.setOnClickListener(v -> {
-            // Click Play Logic
-            EngineVariant chosen = (EngineVariant) spEngine.getSelectedItem();
-            if (chosen == null) {
-                Toast.makeText(this, "First select a FSO version from the list.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            String userLine = etArgs.getText() != null ? etArgs.getText().toString() : defaultArgs;
-            java.util.List<String> extra = tokenizeArgs(userLine);
-            ArrayList<String> argv = new ArrayList<>(extra);
-
-            if (!containsFlag(extra, "-working_folder")) {
-                StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
-                if (sel != null && sel.path != null && !sel.path.isEmpty()) {
-                    argv.add("-working_folder");
-                    String actualRootPath = sel.path+ "/" + lastSelectedSubdir + "/";
-                    argv.add(actualRootPath);
-                    // copy
-                    boolean ok = ensureAssetPresent(shader_file_name, actualRootPath);
-                    if (!ok) {
-                        android.widget.Toast.makeText(this,
-                                "Unable to copy shader files to working folder.",
-                                android.widget.Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                }
-            }
-
-            sharedPref.edit().putString("fso_args", userLine).apply();
-            sharedPref.edit().putBoolean("touch_overlay", touchControls.isChecked()).apply();
-
-            if (!containsFlag(extra, "-mod")) {
-                argv.add("-mod");
-                argv.add("dummy");
-            }
-
-            ensureIniPresent();
-
-            Intent i = new Intent(this, GameActivity.class);
-            i.putExtra("engineLibName", chosen.baseName);
-            i.putStringArrayListExtra("fsoArgs", argv);
-            i.putExtra("touchOverlay",touchControls.isChecked());
-            startActivity(i);
-        });
-    }
-
     private void LoadFSOVersions()
     {
         spEngine = findViewById(R.id.spEngine);
@@ -373,6 +362,13 @@ public class MainActivity extends AppCompatActivity {
         copyAssetToFile(FSO_INI, dest);
     }
 
+    public void deleteFileIfExist(String filePath) {
+        File file = new File(filePath);
+        if (file.exists()) {
+            file.delete();
+        }
+    }
+
     private void copyAssetToFile(String assetName, File outFile) {
         if (outFile.exists()) return;
         java.io.InputStream in = null;
@@ -387,8 +383,7 @@ public class MainActivity extends AppCompatActivity {
             int r;
             while ((r = in.read(buf)) != -1) out.write(buf, 0, r);
             out.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         } finally {
             try { if (in != null) in.close(); } catch (Exception ignored) {}
             try { if (out != null) out.close(); } catch (Exception ignored) {}

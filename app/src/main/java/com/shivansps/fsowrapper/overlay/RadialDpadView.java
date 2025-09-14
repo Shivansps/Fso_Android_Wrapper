@@ -2,6 +2,7 @@ package com.shivansps.fsowrapper.overlay;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
@@ -42,8 +43,14 @@ public class RadialDpadView extends View {
         setFocusable(false);
         setClickable(true);
         setHapticFeedbackEnabled(true);
-        pBase.setStyle(Paint.Style.FILL); pBase.setAlpha(60);
-        pKnob.setStyle(Paint.Style.FILL); pKnob.setAlpha(110);
+
+        pBase.setStyle(Paint.Style.FILL);
+        pBase.setColor(Color.WHITE);
+        pBase.setAlpha(26);
+
+        pKnob.setStyle(Paint.Style.FILL);
+        pKnob.setColor(Color.WHITE);
+        pKnob.setAlpha(77);
     }
 
     public void setFloating(boolean f) {

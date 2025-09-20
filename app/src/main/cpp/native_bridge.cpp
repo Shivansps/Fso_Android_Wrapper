@@ -17,7 +17,7 @@ static std::atomic<float> g_vx{0}, g_vy{0};
 static Uint32 g_last_ms = 0;
 // dpad/mouse settings
 const float dead = 0.12f; // deadzone
-const float baseSpeed = 1000.f; // sensitivity bigger = faster
+const float baseSpeed = 1100.f; // sensitivity bigger = faster
 const float accelExp  = 1.6f; // acceleration
 
 static Uint32 detect_window_id_once() {

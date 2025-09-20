@@ -31,7 +31,7 @@ public class RadialDpadView extends View {
     private final Runnable mouseTicker = new Runnable() {
         @Override public void run() {
             if (activePid != -1) {
-                NativeBridge.mouseTick(currentNx, currentNy * -1); //invert y by default
+                NativeBridge.mouseTick(currentNx, currentNy );
                 postOnAnimation(this);
             }
         }

@@ -29,8 +29,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String LOG_RELATIVE_PATH = "data/fs2_open.log";
     private static final String defaultArgs = "-fps -no_geo_effects -threads 0";
     private Spinner spEngine;
-    private List<EngineVariant> engineList = new ArrayList<>();
-    private NativeLibScanner.Catalog catalog;
     private Spinner spWorkingFolder;
     private RadioGroup rgRootSubdir;
     private String lastSelectedSubdir = "";
@@ -88,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                     String actualRootPath = sel.path+ "/" + lastSelectedSubdir + "/";
                     argv.add(actualRootPath);
                     // delete old shader file
-                    deleteFileIfExist(actualRootPath+"0_shader_v1.vp");
+                    //deleteFileIfExist(actualRootPath+"0_shader_v1.vp");
                     // copy
                     boolean ok = ensureAssetPresent(shader_file_name, actualRootPath);
                     if (!ok) {
@@ -109,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
             i.putExtra("engineLibName", chosen.baseName);
             i.putStringArrayListExtra("fsoArgs", argv);
             i.putExtra("touchOverlay",touchControls.isChecked());
+            //i.putExtra("externalFolderPath",true);
             startActivity(i);
         });
     }
@@ -192,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
             android.widget.Toast.makeText(this, "Unable to open log: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
         }
     }
@@ -237,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < rgRootSubdir.getChildCount(); i++) {
                 android.view.View v = rgRootSubdir.getChildAt(i);
                 Object tag = v.getTag();
-                if (tag instanceof String && ((String) tag).equals(lastSelectedSubdir)) {
+                if (tag instanceof String && (tag).equals(lastSelectedSubdir)) {
                     rgRootSubdir.check(v.getId());
                     restored = true;
                     break;
@@ -245,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (!restored) {
-            rgRootSubdir.check(((android.widget.RadioButton) rgRootSubdir.getChildAt(0)).getId());
+            rgRootSubdir.check((rgRootSubdir.getChildAt(0)).getId());
             lastSelectedSubdir = "";
         }
 
@@ -265,8 +263,8 @@ public class MainActivity extends AppCompatActivity {
         spEngine = findViewById(R.id.spEngine);
 
         // Scan jniLibs folder
-        catalog = NativeLibScanner.scan(this);
-        engineList = NativeLibScanner.flatListSorted(catalog);
+        NativeLibScanner.Catalog catalog = NativeLibScanner.scan(this);
+        List<EngineVariant> engineList = NativeLibScanner.flatListSorted(catalog);
 
         if (engineList.isEmpty()) {
             Toast.makeText(this, "No FSO binaries found in jniLibs.", Toast.LENGTH_LONG).show();

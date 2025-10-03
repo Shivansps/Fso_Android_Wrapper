@@ -46,11 +46,6 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
     }
 
     @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         try {
             getWindow().setSustainedPerformanceMode(true);
@@ -64,6 +59,9 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         boolean touchOverlay = i == null || i.getBooleanExtra("touchOverlay", true);
         if (touchOverlay) {
             getWindow().getDecorView().post(this::setupOverlayFromXml);
+        }
+        if(i != null && i.getBooleanExtra("externalFolderPath", false)) {
+            StoragePermissions.ensureStorageAccess(this);
         }
     }
 

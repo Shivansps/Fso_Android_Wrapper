@@ -4,14 +4,15 @@ plugins {
 
 android {
     namespace = "com.shivansps.fsowrapper"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.shivansps.fsowrapper"
         minSdk = 28
-        targetSdk = 34
-        versionCode = 6
-        versionName = "1.5"
+        targetSdk = 36
+        versionCode = 7
+        versionName = "1.6"
+        ndkVersion = "28.2.13676358"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {

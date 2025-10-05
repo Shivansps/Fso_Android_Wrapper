@@ -66,6 +66,17 @@
             android:immersive="true"
             android:process=":game"
             android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="com.shivansps.fsowrapper.LAUNCH_GAME" />
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
         </activity>
+        <service
+            android:name=".ipc.IpcService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.shivansps.fsowrapper.IPC" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

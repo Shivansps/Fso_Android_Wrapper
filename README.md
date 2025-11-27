@@ -6,17 +6,20 @@ Note: This is experimental, do not expect a fully playable game out of this.<br 
 Follow the progress here: https://github.com/scp-fs2open/fs2open.github.com/pull/6992
 <br />
 <br />
+
 Objective of this project
 =======================
+
 It was originally intended that Knossos.NET would work along with this Wrapper to run FSO on Android, as i started to learn more about Android limits and how it worked and how much i could do with the Knossos.NET C# Avalonia project for android i ended up dropping this idea, Knossos.NET can do all the required work alone. So all the changes to add an IPC service that Knossos would have used were reverted.
 <br />
 Now this project has new objectives:<br />
-- Test FSO android version without having to deploy builds to Knossos.
+- Test FSO android versions without having to use Knossos.
 - Develop (and compile) the touch control interface that is also used by Knossos.NET
 - Example/Template for FSO TC mods wanting to release it as a standalone android game.
 
 <br /><br />
-How to use it
+
+How to use it in Android Studio
 =======================
 
 <br />

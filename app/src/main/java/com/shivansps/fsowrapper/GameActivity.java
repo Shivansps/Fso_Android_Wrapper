@@ -60,9 +60,6 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         if (touchOverlay) {
             getWindow().getDecorView().post(this::setupOverlayFromXml);
         }
-        if(i != null && i.getBooleanExtra("externalFolderPath", false)) {
-            StoragePermissions.ensureStorageAccess(this);
-        }
     }
 
     @Override protected void onPause() {

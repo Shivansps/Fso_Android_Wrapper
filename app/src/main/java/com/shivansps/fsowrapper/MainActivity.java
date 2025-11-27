@@ -107,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
             i.putExtra("engineLibName", chosen.baseName);
             i.putStringArrayListExtra("fsoArgs", argv);
             i.putExtra("touchOverlay",touchControls.isChecked());
-            //i.putExtra("externalFolderPath",true);
             startActivity(i);
         });
     }

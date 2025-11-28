@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cmath>
 #include <thread>
+#include <vector>
 
 #ifdef ENABLE_LOG
 #include <android/log.h>
@@ -70,8 +71,7 @@ static void push_alt_combo(jboolean down, SDL_Scancode sc, SDL_Keycode kc) {
     }
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_shivansps_fsowrapper_overlay_NativeBridge_onButton(JNIEnv*, jclass, jint code, jboolean down) {
+static void NB_onButton(jint code, jboolean down) {
     auto send = [&](SDL_Scancode sc, SDL_Keycode kc){ push_key(down, sc, kc); };
     #ifdef ENABLE_LOG
     LOGI("native onButton code=%d down=%d", (int)code, (int)down);
@@ -169,7 +169,7 @@ Java_com_shivansps_fsowrapper_overlay_NativeBridge_onButton(JNIEnv*, jclass, jin
 
         default:
             #ifdef ENABLE_LOG
-            LOGI("Error: Unmapped key code=%d, (int)code);
+            LOGI("Error: Unmapped key code=%d", (int)code);
             #endif
             break;
     }
@@ -278,17 +278,13 @@ namespace macro {
     }
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_shivansps_fsowrapper_overlay_NativeBridge_runMacro(JNIEnv*, jclass, jint id) {
-    macro::start_async((int)id);
-}
-extern "C" JNIEXPORT void JNICALL
-Java_com_shivansps_fsowrapper_overlay_NativeBridge_cancelMacros(JNIEnv*, jclass) {
+static void NB_runMacro(jint id) { macro::start_async((int)id); }
+
+static void NB_cancelMacros() {
     macro::cancel();
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_shivansps_fsowrapper_overlay_NativeBridge_mouseStart(JNIEnv*, jclass) {
+static void NB_mouseStart() {
     SDL_SetRelativeMouseMode(SDL_TRUE);
     g_mouse_active.store(true);
     g_last_ms = SDL_GetTicks();
@@ -297,8 +293,7 @@ Java_com_shivansps_fsowrapper_overlay_NativeBridge_mouseStart(JNIEnv*, jclass) {
     #endif
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_shivansps_fsowrapper_overlay_NativeBridge_mouseStop(JNIEnv*, jclass) {
+static void NB_mouseStop() {
     g_mouse_active.store(false);
     SDL_SetRelativeMouseMode(SDL_FALSE);
     g_vx.store(0); g_vy.store(0);
@@ -307,8 +302,7 @@ Java_com_shivansps_fsowrapper_overlay_NativeBridge_mouseStop(JNIEnv*, jclass) {
     #endif
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_shivansps_fsowrapper_overlay_NativeBridge_mouseTick(JNIEnv*, jclass, jfloat nx, jfloat ny) {
+static void NB_mouseTick(jfloat nx, jfloat ny) {
     if (!g_mouse_active.load()) return;
 
 
@@ -339,3 +333,15 @@ Java_com_shivansps_fsowrapper_overlay_NativeBridge_mouseTick(JNIEnv*, jclass, jf
 
     SDL_PushEvent(&e);
 }
+
+#define NB_DEFINE_JNI(PREFIX) \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_onButton(JNIEnv*, jclass, jint code, jboolean down) { NB_onButton(code, down); } \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_runMacro(JNIEnv*, jclass, jint id) { NB_runMacro(id); } \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_cancelMacros(JNIEnv*, jclass) { NB_cancelMacros(); } \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_mouseStart(JNIEnv*, jclass) { NB_mouseStart(); } \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_mouseStop(JNIEnv*, jclass) { NB_mouseStop(); } \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_mouseTick(JNIEnv*, jclass, jfloat nx, jfloat ny) { NB_mouseTick(nx, ny); }
+
+NB_DEFINE_JNI(com_shivansps_fsowrapper_overlay_NativeBridge)
+NB_DEFINE_JNI(com_knossosnet_knossosnet_overlay_NativeBridge)
+#undef NB_DEFINE_JNI

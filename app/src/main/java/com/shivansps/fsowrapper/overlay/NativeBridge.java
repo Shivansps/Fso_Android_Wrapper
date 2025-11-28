@@ -1,7 +1,7 @@
 package com.shivansps.fsowrapper.overlay;
 
 public class NativeBridge {
-    static { System.loadLibrary("fsowrapper"); }
+    static { System.loadLibrary("touchcontrols"); }
 
     //COMMON
     public static final int CODE_ESC = 1;

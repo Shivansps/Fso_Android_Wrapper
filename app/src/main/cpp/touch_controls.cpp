@@ -334,7 +334,14 @@ static void NB_mouseTick(jfloat nx, jfloat ny) {
     SDL_PushEvent(&e);
 }
 
+static void setTextInputEnabled(bool enabled)
+{
+    if (enabled) SDL_StartTextInput();
+    else SDL_StopTextInput();
+}
+
 #define NB_DEFINE_JNI(PREFIX) \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_setTextInputEnabled(jboolean enabled) { setTextInputEnabled(enabled); } \
 extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_onButton(JNIEnv*, jclass, jint code, jboolean down) { NB_onButton(code, down); } \
 extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_runMacro(JNIEnv*, jclass, jint id) { NB_runMacro(id); } \
 extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_cancelMacros(JNIEnv*, jclass) { NB_cancelMacros(); } \

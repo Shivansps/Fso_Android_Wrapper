@@ -23,7 +23,7 @@ import android.view.View;
 import android.widget.RadioGroup;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String shader_file_name = "0_shaders_v2.vp";
+    private static final String shader_file_name = "0_shaders_v3.vp";
     private static final String demo_filename = "fs2_demo.vpc"; //empty to disable demo install function
     private static final String FSO_INI = "fs2_open.ini";
     private static final String LOG_RELATIVE_PATH = "data/fs2_open.log";

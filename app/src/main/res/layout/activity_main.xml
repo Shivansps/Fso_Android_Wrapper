@@ -72,12 +72,18 @@
 			android:layout_height="wrap_content"
 			android:layout_marginTop="24dp"
 			android:text="Play" />
+			
+		<CheckBox
+			android:id="@+id/useVulkan"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="Use Vulkan Renderer" />
 
 		<CheckBox
 			android:id="@+id/touchControlsCheckBox"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:text="Touch controls overlay" />
+			android:text="Show Touch controls overlay" />
 
 		<Button
 			android:id="@+id/btnOpenLog"

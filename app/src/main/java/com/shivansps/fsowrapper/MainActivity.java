@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String demo_filename = "fs2_demo.vpc"; //empty to disable demo install function
     private static final String FSO_INI = "fs2_open.ini";
     private static final String LOG_RELATIVE_PATH = "data/fs2_open.log";
-    private static final String defaultArgs = "-fps -no_geo_effects -threads 0";
+    private static final String defaultArgs = "-fps -threads 0";
     private Spinner spEngine;
     private Spinner spWorkingFolder;
     private RadioGroup rgRootSubdir;
@@ -62,10 +62,12 @@ public class MainActivity extends AppCompatActivity {
         Button btnPlay = findViewById(R.id.btnPlay);
         EditText etArgs = findViewById(R.id.etArgs);
         CheckBox touchControls = findViewById(R.id.touchControlsCheckBox);
+        CheckBox useVulkan = findViewById(R.id.useVulkan);
 
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
         etArgs.setText(sharedPref.getString("fso_args", defaultArgs));
         touchControls.setChecked(sharedPref.getBoolean("touch_overlay", true));
+        useVulkan.setChecked(sharedPref.getBoolean("use_vulkan", true));
 
         btnPlay.setOnClickListener(v -> {
             // Click Play Logic
@@ -85,21 +87,29 @@ public class MainActivity extends AppCompatActivity {
                     argv.add("-working_folder");
                     String actualRootPath = sel.path+ "/" + lastSelectedSubdir + "/";
                     argv.add(actualRootPath);
-                    // delete old shader file
-                    //deleteFileIfExist(actualRootPath+"0_shader_v1.vp");
-                    // copy
-                    boolean ok = ensureAssetPresent(shader_file_name, actualRootPath);
-                    if (!ok) {
-                        android.widget.Toast.makeText(this,
-                                "Unable to copy shader files to working folder.",
-                                android.widget.Toast.LENGTH_SHORT).show();
-                        return;
+                    if(!useVulkan.isChecked()) {
+                        // copy gles shaders
+                        boolean ok = ensureAssetPresent(shader_file_name, actualRootPath);
+                        if (!ok) {
+                            android.widget.Toast.makeText(this,
+                                    "Unable to copy shader files to working folder.",
+                                    android.widget.Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    } else {
+                        // delete gles shaders if they exist
+                        ensureAssetDeleted(shader_file_name, actualRootPath);
                     }
                 }
             }
 
+            if (useVulkan.isChecked() && !containsFlag(extra, "-vulkan")) {
+                argv.add("-vulkan");
+            }
+
             sharedPref.edit().putString("fso_args", userLine).apply();
             sharedPref.edit().putBoolean("touch_overlay", touchControls.isChecked()).apply();
+            sharedPref.edit().putBoolean("use_vulkan", useVulkan.isChecked()).apply();
 
             ensureIniPresent();
 
@@ -350,6 +360,17 @@ public class MainActivity extends AppCompatActivity {
             try { if (in != null) in.close(); } catch (Exception ignored) {}
             try { if (out != null) out.close(); } catch (Exception ignored) {}
         }
+    }
+
+    private boolean ensureAssetDeleted(String assetName, String wfolderAbsPath) {
+        if (wfolderAbsPath == null || wfolderAbsPath.isEmpty()) return true;
+
+        java.io.File dest = new java.io.File(wfolderAbsPath, assetName);
+        if (dest.exists())
+        {
+            return dest.delete();
+        };
+        return true;
     }
 
     private void ensureIniPresent() {

@@ -10,8 +10,8 @@ android {
         applicationId = "com.shivansps.fsowrapper"
         minSdk = 28
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.7"
+        versionCode = 8
+        versionName = "1.8"
         ndkVersion = "28.2.13676358"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

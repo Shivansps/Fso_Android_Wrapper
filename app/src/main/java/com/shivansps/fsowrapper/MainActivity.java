@@ -1,10 +1,15 @@
 package com.shivansps.fsowrapper;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
 import androidx.core.content.FileProvider;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -15,6 +20,7 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.Toast;
 import java.util.ArrayList;
@@ -78,30 +84,17 @@ public class MainActivity extends AppCompatActivity {
             }
 
             String userLine = etArgs.getText() != null ? etArgs.getText().toString() : defaultArgs;
-            java.util.List<String> extra = tokenizeArgs(userLine);
+            List<String> extra = tokenizeArgs(userLine);
             ArrayList<String> argv = new ArrayList<>(extra);
 
-            if (!containsFlag(extra, "-working_folder")) {
-                StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
-                if (sel != null && sel.path != null && !sel.path.isEmpty()) {
-                    argv.add("-working_folder");
-                    String actualRootPath = sel.path+ "/" + lastSelectedSubdir + "/";
-                    argv.add(actualRootPath);
-                    if(!useVulkan.isChecked()) {
-                        // copy gles shaders
-                        boolean ok = ensureAssetPresent(shader_file_name, actualRootPath);
-                        if (!ok) {
-                            android.widget.Toast.makeText(this,
-                                    "Unable to copy shader files to working folder.",
-                                    android.widget.Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                    } else {
-                        // delete gles shaders if they exist
-                        ensureAssetDeleted(shader_file_name, actualRootPath);
-                    }
-                }
+            StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
+            String actualRootPath = "";
+            if (sel != null && sel.path != null && !sel.path.isEmpty()) {
+                actualRootPath = sel.path+ "/" + lastSelectedSubdir + "/";
             }
+
+            // delete gles shaders if they exist
+            ensureAssetDeleted(shader_file_name, actualRootPath);
 
             if (useVulkan.isChecked() && !containsFlag(extra, "-vulkan")) {
                 argv.add("-vulkan");
@@ -116,7 +109,8 @@ public class MainActivity extends AppCompatActivity {
             Intent i = new Intent(this, GameActivity.class);
             i.putExtra("engineLibName", chosen.baseName);
             i.putStringArrayListExtra("fsoArgs", argv);
-            i.putExtra("touchOverlay",touchControls.isChecked());
+            i.putExtra("forceTouchOverlay",touchControls.isChecked());
+            i.putExtra("workingFolder", actualRootPath);
             startActivity(i);
         });
     }
@@ -165,42 +159,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openFs2Log() {
-        java.io.File logFile = new java.io.File(getFilesDir(), LOG_RELATIVE_PATH);
+        File logFile = new File(getFilesDir(), LOG_RELATIVE_PATH);
 
         if (!logFile.exists() || !logFile.isFile()) {
-            android.widget.Toast.makeText(this, "The log file does not exist.", android.widget.Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "The log file does not exist.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
-            android.net.Uri uri = FileProvider.getUriForFile(
+            Uri uri = FileProvider.getUriForFile(
                     this,
                     getPackageName() + ".fileprovider",
                     logFile
             );
 
-            android.content.Intent view = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            Intent view = new Intent(Intent.ACTION_VIEW);
             view.setDataAndType(uri, "text/plain");
-            view.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
             if (view.resolveActivity(getPackageManager()) != null) {
-                startActivity(android.content.Intent.createChooser(view, "Open fs2_open.log"));
+                startActivity(Intent.createChooser(view, "Open fs2_open.log"));
                 return;
             }
 
-            android.content.Intent send = new android.content.Intent(android.content.Intent.ACTION_SEND);
+            Intent send = new Intent(Intent.ACTION_SEND);
             send.setType("text/plain");
-            send.putExtra(android.content.Intent.EXTRA_STREAM, uri);
-            send.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
             if (send.resolveActivity(getPackageManager()) != null) {
-                startActivity(android.content.Intent.createChooser(send, "Share fs2_open.log"));
+                startActivity(Intent.createChooser(send, "Share fs2_open.log"));
             } else {
-                android.widget.Toast.makeText(this, "No apps installed to open this type of file (.log).", android.widget.Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "No apps installed to open this type of file (.log).", Toast.LENGTH_SHORT).show();
             }
 
         } catch (Exception e) {
-            android.widget.Toast.makeText(this, "Unable to open log: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Unable to open log: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -212,25 +206,25 @@ public class MainActivity extends AppCompatActivity {
 
         StorageOption sel = (StorageOption) spWorkingFolder.getSelectedItem();
         String w_folder = sel.path;
-        java.io.File root = new java.io.File(w_folder);
+        File root = new File(w_folder);
 
-        android.widget.RadioButton rbNone = new android.widget.RadioButton(this);
+        RadioButton rbNone = new RadioButton(this);
         rbNone.setId(generateViewIdCompat());
         rbNone.setEnabled(true);
         rbNone.setText("/");
         rbNone.setTag("/");
         rgRootSubdir.addView(rbNone);
 
-        java.io.File[] kids = root.listFiles();
+        File[] kids = root.listFiles();
         if (kids != null) {
-            java.util.Arrays.sort(kids, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-            for (java.io.File f : kids) {
+            Arrays.sort(kids, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+            for (File f : kids) {
                 if (!f.isDirectory()) continue;
                 String name = f.getName();
                 if ("data".equalsIgnoreCase(name)) continue;
                 if (name.startsWith(".")) continue;
 
-                android.widget.RadioButton rb = new android.widget.RadioButton(this);
+                RadioButton rb = new RadioButton(this);
                 rb.setId(generateViewIdCompat());
                 rb.setEnabled(true);
                 rb.setText(name);
@@ -242,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
         boolean restored = false;
         if (lastSelectedSubdir != null) {
             for (int i = 0; i < rgRootSubdir.getChildCount(); i++) {
-                android.view.View v = rgRootSubdir.getChildAt(i);
+                View v = rgRootSubdir.getChildAt(i);
                 Object tag = v.getTag();
                 if (tag instanceof String && (tag).equals(lastSelectedSubdir)) {
                     rgRootSubdir.check(v.getId());
@@ -257,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         rgRootSubdir.setOnCheckedChangeListener((group, checkedId) -> {
-            android.view.View v = group.findViewById(checkedId);
+            View v = group.findViewById(checkedId);
             Object tag = (v != null) ? v.getTag() : "";
             lastSelectedSubdir = (tag instanceof String) ? (String) tag : "";
         });
@@ -309,8 +303,8 @@ public class MainActivity extends AppCompatActivity {
     private static final Pattern ARG_PATTERN =
             Pattern.compile("\"([^\"]*)\"|'([^']*)'|\\S+");
 
-    private static java.util.List<String> tokenizeArgs(String line) {
-        java.util.ArrayList<String> out = new java.util.ArrayList<>();
+    private static List<String> tokenizeArgs(String line) {
+        ArrayList<String> out = new ArrayList<>();
         if (line == null) return out;
         line = line.trim();
         if (line.isEmpty()) return out;
@@ -326,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
         return out;
     }
 
-    private static boolean containsFlag(java.util.List<String> tokens, String flag) {
+    private static boolean containsFlag(List<String> tokens, String flag) {
         for (int i = 0; i < tokens.size(); i++) {
             if (flag.equals(tokens.get(i))) return true;
         }
@@ -336,13 +330,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean ensureAssetPresent(String assetName, String wfolderAbsPath) {
         if (wfolderAbsPath == null || wfolderAbsPath.isEmpty()) return false;
 
-        java.io.File dest = new java.io.File(wfolderAbsPath, assetName);
+        File dest = new File(wfolderAbsPath, assetName);
         if (dest.exists()) return true;
 
         if (dest.getParentFile() != null) dest.getParentFile().mkdirs();
 
-        java.io.InputStream in = null;
-        java.io.OutputStream out = null;
+        InputStream in = null;
+        OutputStream out = null;
         try {
             in = getAssets().open(assetName);
             out = Files.newOutputStream(dest.toPath());
@@ -353,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
             }
             out.flush();
             return true;
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             return false;
         } finally {
@@ -365,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean ensureAssetDeleted(String assetName, String wfolderAbsPath) {
         if (wfolderAbsPath == null || wfolderAbsPath.isEmpty()) return true;
 
-        java.io.File dest = new java.io.File(wfolderAbsPath, assetName);
+        File dest = new File(wfolderAbsPath, assetName);
         if (dest.exists())
         {
             return dest.delete();
@@ -374,7 +368,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ensureIniPresent() {
-        java.io.File dest = new java.io.File(getFilesDir(), FSO_INI);
+        File dest = new File(getFilesDir(), FSO_INI);
         if (dest.exists()) return;
 
         copyAssetToFile(FSO_INI, dest);
@@ -389,8 +383,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void copyAssetToFile(String assetName, File outFile) {
         if (outFile.exists()) return;
-        java.io.InputStream in = null;
-        java.io.OutputStream out = null;
+        InputStream in = null;
+        OutputStream out = null;
         try {
             if (outFile.getParentFile() != null && !outFile.getParentFile().exists()) {
                 outFile.getParentFile().mkdirs();

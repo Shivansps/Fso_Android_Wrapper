@@ -13,6 +13,15 @@ import android.widget.*;
 import com.shivansps.fsowrapper.overlay.NativeBridge;
 
 public class GameActivity extends org.libsdl.app.SDLActivity {
+
+    private static String _workingFolder = "";
+
+    /* FSO API */
+
+    public static String getWorkingFolder() { return _workingFolder; }
+
+    /* ******* */
+
     @Override
     protected String[] getArguments() {
         android.content.Intent i = getIntent();
@@ -55,12 +64,16 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         }
         TTSManager.init(this);
         super.onCreate(savedInstanceState);
-
         Intent i = getIntent();
-        boolean touchOverlay = i == null || i.getBooleanExtra("touchOverlay", true);
-        if (touchOverlay) {
-            getWindow().getDecorView().post(this::setupOverlayFromXml);
+        if(i != null)
+        {
+            boolean overlayOn = i.getBooleanExtra("forceTouchOverlay", true);
+            _workingFolder = i.getStringExtra("workingFolder");
+            if(overlayOn){
+                getWindow().getDecorView().post(this::setupOverlayFromXml);
+            }
         }
+
     }
 
     @Override protected void onPause() {
@@ -94,6 +107,7 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
 
     @Override protected void onDestroy()
     {
+        _workingFolder = "";
         TTSManager.shutdown();
         super.onDestroy();
         try {
@@ -293,7 +307,6 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         addContentView(overlay, lp);
         overlay.bringToFront();
         overlay.setElevation(10000f);
-
 
         if (Build.VERSION.SDK_INT >= 30) {
             final WindowInsetsController c = getWindow().getInsetsController();

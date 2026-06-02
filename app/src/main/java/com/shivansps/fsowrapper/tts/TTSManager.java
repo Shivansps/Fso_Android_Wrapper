@@ -5,7 +5,10 @@ import android.media.AudioAttributes;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
+import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Set;
 import android.app.Activity;
 
 public final class TTSManager implements TextToSpeech.OnInitListener {
@@ -77,6 +80,23 @@ public final class TTSManager implements TextToSpeech.OnInitListener {
         if (engine == null || bcp47 == null || bcp47.isEmpty()) return;
 
         engine.setLanguage(Locale.forLanguageTag(bcp47));
+    }
+
+    public static String[] getAvailableLanguageTags() {
+        TextToSpeech engine = tts;
+        if (engine == null || !ready) return new String[0];
+
+        Set<Voice> voices = engine.getVoices();
+        if (voices == null || voices.isEmpty()) return new String[0];
+
+        ArrayList<String> tags = new ArrayList<>();
+        for (Voice v : voices) {
+            // Skip voices flagged as requiring network or low-quality
+            if (!v.getFeatures().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)) {
+                tags.add(v.getLocale().toLanguageTag());
+            }
+        }
+        return tags.toArray(new String[0]);
     }
 
     public static void shutdown() {

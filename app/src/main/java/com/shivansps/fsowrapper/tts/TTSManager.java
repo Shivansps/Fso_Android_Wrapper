@@ -10,8 +10,6 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Set;
 import android.app.Activity;
-import java.util.Collections;
-import java.util.Comparator;
 
 public final class TTSManager implements TextToSpeech.OnInitListener {
     private static final String defaultLangTag = "en-US";
@@ -75,7 +73,6 @@ public final class TTSManager implements TextToSpeech.OnInitListener {
     public static boolean isSpeaking() { return speaking; }
 
     public static void setRate(float rate) { if (tts != null) tts.setSpeechRate(rate); }
-    public static void setPitch(float pitch) { if (tts != null) tts.setPitch(pitch); }
 
 	public static void setLanguageTag(String voiceName) {
 		TextToSpeech engine = tts;
@@ -111,16 +108,14 @@ public final class TTSManager implements TextToSpeech.OnInitListener {
 		}
 
 		// List english voices first
-		Collections.sort(usable, new Comparator<Voice>() {
-			@Override public int compare(Voice a, Voice b) {
-				boolean aEn = "en".equals(a.getLocale().getLanguage());
-				boolean bEn = "en".equals(b.getLocale().getLanguage());
-				if (aEn != bEn) return aEn ? -1 : 1;
-				int byTag = a.getLocale().toLanguageTag().compareTo(b.getLocale().toLanguageTag());
-				if (byTag != 0) return byTag;
-				return a.getName().compareTo(b.getName());
-			}
-		});
+		usable.sort((a, b) -> {
+            boolean aEn = "en".equals(a.getLocale().getLanguage());
+            boolean bEn = "en".equals(b.getLocale().getLanguage());
+            if (aEn != bEn) return aEn ? -1 : 1;
+            int byTag = a.getLocale().toLanguageTag().compareTo(b.getLocale().toLanguageTag());
+            if (byTag != 0) return byTag;
+            return a.getName().compareTo(b.getName());
+        });
 
 		ArrayList<String> out = new ArrayList<>(usable.size());
 		for (Voice v : usable) out.add(v.getName());

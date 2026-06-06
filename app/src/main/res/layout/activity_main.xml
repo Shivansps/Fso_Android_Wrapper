@@ -83,7 +83,7 @@
 			android:id="@+id/touchControlsCheckBox"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:text="Show Touch controls overlay" />
+			android:text="Touch controls overlay forced on" />
 
 		<Button
 			android:id="@+id/btnOpenLog"

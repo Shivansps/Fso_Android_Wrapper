@@ -1,12 +1,13 @@
 package com.shivansps.fsowrapper;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import androidx.core.content.FileProvider;
+
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -31,7 +32,6 @@ import android.widget.RadioGroup;
 public class MainActivity extends AppCompatActivity {
     private static final String shader_file_name = "0_shaders_v5.vp";
     private static final String demo_filename = "fs2_demo.vpc"; //empty to disable demo install function
-    private static final String FSO_INI = "fs2_open.ini";
     private static final String LOG_RELATIVE_PATH = "data/fs2_open.log";
     private static final String defaultArgs = "-fps -threads 0";
     private Spinner spEngine;
@@ -72,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
         etArgs.setText(sharedPref.getString("fso_args", defaultArgs));
-        touchControls.setChecked(sharedPref.getBoolean("touch_overlay", true));
-        useVulkan.setChecked(sharedPref.getBoolean("use_vulkan", true));
+        touchControls.setChecked(sharedPref.getBoolean("touch_overlay", false));
+        useVulkan.setChecked(sharedPref.getBoolean("use_vulkan", false));
 
         btnPlay.setOnClickListener(v -> {
             // Click Play Logic
@@ -103,8 +103,6 @@ public class MainActivity extends AppCompatActivity {
             sharedPref.edit().putString("fso_args", userLine).apply();
             sharedPref.edit().putBoolean("touch_overlay", touchControls.isChecked()).apply();
             sharedPref.edit().putBoolean("use_vulkan", useVulkan.isChecked()).apply();
-
-            ensureIniPresent();
 
             Intent i = new Intent(this, GameActivity.class);
             i.putExtra("engineLibName", chosen.baseName);
@@ -158,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
         btnOpenLog.setOnClickListener(v -> openFs2Log());
     }
 
+    @SuppressLint("QueryPermissionsNeeded")
     private void openFs2Log() {
         File logFile = new File(getFilesDir(), LOG_RELATIVE_PATH);
 
@@ -327,57 +326,14 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    private boolean ensureAssetPresent(String assetName, String wfolderAbsPath) {
-        if (wfolderAbsPath == null || wfolderAbsPath.isEmpty()) return false;
-
-        File dest = new File(wfolderAbsPath, assetName);
-        if (dest.exists()) return true;
-
-        if (dest.getParentFile() != null) dest.getParentFile().mkdirs();
-
-        InputStream in = null;
-        OutputStream out = null;
-        try {
-            in = getAssets().open(assetName);
-            out = Files.newOutputStream(dest.toPath());
-            byte[] buf = new byte[8192];
-            int r;
-            while ((r = in.read(buf)) != -1) {
-                out.write(buf, 0, r);
-            }
-            out.flush();
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        } finally {
-            try { if (in != null) in.close(); } catch (Exception ignored) {}
-            try { if (out != null) out.close(); } catch (Exception ignored) {}
-        }
-    }
-
-    private boolean ensureAssetDeleted(String assetName, String wfolderAbsPath) {
-        if (wfolderAbsPath == null || wfolderAbsPath.isEmpty()) return true;
+    private void ensureAssetDeleted(String assetName, String wfolderAbsPath) {
+        if (wfolderAbsPath == null || wfolderAbsPath.isEmpty()) return;
 
         File dest = new File(wfolderAbsPath, assetName);
         if (dest.exists())
         {
-            return dest.delete();
-        };
-        return true;
-    }
-
-    private void ensureIniPresent() {
-        File dest = new File(getFilesDir(), FSO_INI);
-        if (dest.exists()) return;
-
-        copyAssetToFile(FSO_INI, dest);
-    }
-
-    public void deleteFileIfExist(String filePath) {
-        File file = new File(filePath);
-        if (file.exists()) {
-            file.delete();
+            dest.delete();
+            return;
         }
     }
 

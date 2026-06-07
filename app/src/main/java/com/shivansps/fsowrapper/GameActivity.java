@@ -102,7 +102,7 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         Intent i = getIntent();
         if(i != null)
         {
-            _forceOverlayOn = i.getBooleanExtra("forceTouchOverlay", true);
+            _forceOverlayOn = i.getBooleanExtra("forceTouchOverlay", false);
             _workingFolder = i.getStringExtra("workingFolder");
             getWindow().getDecorView().post(this::setupOverlayFromXml);
         }

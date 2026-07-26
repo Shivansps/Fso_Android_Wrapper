@@ -61,6 +61,7 @@
             android:screenOrientation="sensorLandscape"
             android:immersive="true"
             android:process=":game"
+			android:theme="@style/Theme.FSOWrapper.Game"
             android:launchMode="singleTask">
         </activity>
     </application>

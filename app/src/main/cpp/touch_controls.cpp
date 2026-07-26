@@ -1,10 +1,10 @@
 //#define ENABLE_LOG
 #include <jni.h>
-#include <SDL.h>
 #include <atomic>
 #include <cmath>
 #include <thread>
 #include <vector>
+#include "third_party/SDL3/SDL.h"
 
 #ifdef ENABLE_LOG
 #include <android/log.h>
@@ -15,7 +15,7 @@
 static std::atomic<Uint32> sdl_window_id{0};
 static std::atomic<bool>  g_mouse_active{false};
 static std::atomic<float> g_vx{0}, g_vy{0};
-static Uint32 g_last_ms = 0;
+static Uint64 g_last_ms = 0;
 // dpad/mouse settings
 const float dead = 0.12f; // deadzone
 const float baseSpeed = 1100.f; // sensitivity bigger = faster
@@ -38,27 +38,27 @@ static Uint32 ensure_window_id() {
 
 static void push_key(jboolean down, SDL_Scancode sc, SDL_Keycode kc) {
     SDL_Event e{};
-    e.type = down ? SDL_KEYDOWN : SDL_KEYUP;
-    e.key.state = down ? SDL_PRESSED : SDL_RELEASED;
-    e.key.repeat = 0;
-    e.key.keysym.scancode = sc;
-    e.key.keysym.sym = kc;
-    e.key.keysym.mod = SDL_GetModState();
+    e.type       = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+    e.key.down   = (down != 0);
+    e.key.repeat = false;
+    e.key.scancode = sc;
+    e.key.key      = kc;
+    e.key.mod      = SDL_GetModState();
     e.key.windowID = ensure_window_id();
 
-    int ret = SDL_PushEvent(&e);
-    #ifdef ENABLE_LOG
-    if (ret != 1) {
+    bool ret = SDL_PushEvent(&e);
+#ifdef ENABLE_LOG
+    if (!ret) {                          // antes: ret != 1
         LOGW("SDL_PushEvent %s %s ret=%d windowID=%u err=%s",
              down ? "KEYDOWN" : "KEYUP",
              SDL_GetKeyName(kc),
-             ret, e.key.windowID, SDL_GetError());
+             (int)ret, e.key.windowID, SDL_GetError());
     } else {
         LOGI("SDL_PushEvent %s %s ret=%d windowID=%u",
              down ? "KEYDOWN" : "KEYUP",
-             SDL_GetKeyName(kc), ret, e.key.windowID);
+             SDL_GetKeyName(kc), (int)ret, e.key.windowID);
     }
-    #endif
+#endif
 }
 
 static void push_alt_combo(jboolean down, SDL_Scancode sc, SDL_Keycode kc) {
@@ -73,9 +73,9 @@ static void push_alt_combo(jboolean down, SDL_Scancode sc, SDL_Keycode kc) {
 
 static void NB_onButton(jint code, jboolean down) {
     auto send = [&](SDL_Scancode sc, SDL_Keycode kc){ push_key(down, sc, kc); };
-    #ifdef ENABLE_LOG
+#ifdef ENABLE_LOG
     LOGI("native onButton code=%d down=%d", (int)code, (int)down);
-    #endif
+#endif
     switch (code) {
 
         //COMMON AREA
@@ -86,19 +86,19 @@ static void NB_onButton(jint code, jboolean down) {
             push_key(down, SDL_SCANCODE_F3, SDLK_F3);
             break;
         case 3: // ALT+M
-            push_alt_combo(down, SDL_SCANCODE_M, SDLK_m);
+            push_alt_combo(down, SDL_SCANCODE_M, SDLK_M);
             break;
         case 4: // ALT+H
-            push_alt_combo(down, SDL_SCANCODE_H, SDLK_h);
+            push_alt_combo(down, SDL_SCANCODE_H, SDLK_H);
             break;
         case 5: // ALT+J
-            push_alt_combo(down, SDL_SCANCODE_J, SDLK_j);
+            push_alt_combo(down, SDL_SCANCODE_J, SDLK_J);
             break;
         case 6: // ALT+A
-            push_alt_combo(down, SDL_SCANCODE_A, SDLK_a);
+            push_alt_combo(down, SDL_SCANCODE_A, SDLK_A);
             break;
 
-        //Weapons Area
+            //Weapons Area
         case 20: // Space
             push_key(down, SDL_SCANCODE_SPACE, SDLK_SPACE);
             break;
@@ -112,7 +112,7 @@ static void NB_onButton(jint code, jboolean down) {
             push_key(down, SDL_SCANCODE_SLASH, SDLK_SLASH);
             break;
 
-        // General
+            // General
         case 40: // Tab
             push_key(down, SDL_SCANCODE_TAB, SDLK_TAB);
             break;
@@ -123,19 +123,19 @@ static void NB_onButton(jint code, jboolean down) {
             push_key(down, SDL_SCANCODE_MINUS, SDLK_MINUS);
             break;
         case 43: // Q
-            push_key(down, SDL_SCANCODE_Q, SDLK_q);
+            push_key(down, SDL_SCANCODE_Q, SDLK_Q);
             break;
         case 44: // X
-            push_key(down, SDL_SCANCODE_X, SDLK_x);
+            push_key(down, SDL_SCANCODE_X, SDLK_X);
             break;
         case 45: // M
-            push_key(down, SDL_SCANCODE_M, SDLK_m);
+            push_key(down, SDL_SCANCODE_M, SDLK_M);
             break;
         case 46: // A
-            push_key(down, SDL_SCANCODE_A, SDLK_a);
+            push_key(down, SDL_SCANCODE_A, SDLK_A);
             break;
         case 47: // Z
-            push_key(down, SDL_SCANCODE_Z, SDLK_z);
+            push_key(down, SDL_SCANCODE_Z, SDLK_Z);
             break;
         case 48: // backslash
             push_key(down, SDL_SCANCODE_BACKSLASH, SDLK_BACKSLASH);
@@ -144,33 +144,33 @@ static void NB_onButton(jint code, jboolean down) {
             push_key(down, SDL_SCANCODE_BACKSPACE, SDLK_BACKSPACE);
             break;
 
-        //Targeting Area
+            //Targeting Area
         case 30: // Y
-            push_key(down, SDL_SCANCODE_Y, SDLK_y);
+            push_key(down, SDL_SCANCODE_Y, SDLK_Y);
             break;
         case 31: // H
-            push_key(down, SDL_SCANCODE_H, SDLK_h);
+            push_key(down, SDL_SCANCODE_H, SDLK_H);
             break;
         case 32: // B
-            push_key(down, SDL_SCANCODE_B, SDLK_b);
+            push_key(down, SDL_SCANCODE_B, SDLK_B);
             break;
         case 33: // E
-            push_key(down, SDL_SCANCODE_E, SDLK_e);
+            push_key(down, SDL_SCANCODE_E, SDLK_E);
             break;
         case 34: // F
-            push_key(down, SDL_SCANCODE_F, SDLK_f);
+            push_key(down, SDL_SCANCODE_F, SDLK_F);
             break;
         case 35: // T
-            push_key(down, SDL_SCANCODE_T, SDLK_t);
+            push_key(down, SDL_SCANCODE_T, SDLK_T);
             break;
         case 36: // T
-            push_key(down, SDL_SCANCODE_S, SDLK_s);
+            push_key(down, SDL_SCANCODE_S, SDLK_S);
             break;
 
         default:
-            #ifdef ENABLE_LOG
+#ifdef ENABLE_LOG
             LOGI("Error: Unmapped key code=%d", (int)code);
-            #endif
+#endif
             break;
     }
 }
@@ -220,7 +220,7 @@ namespace macro {
         switch (id) {
             case 1: // C + 3 + 1
                 return {
-                        S::Tap (SDL_SCANCODE_C, SDLK_c, TAP),
+                        S::Tap (SDL_SCANCODE_C, SDLK_C, TAP),
                         S::Wait(GAP),
                         S::Tap (SDL_SCANCODE_3, SDLK_3, TAP),
                         S::Wait(GAP),
@@ -229,7 +229,7 @@ namespace macro {
 
             case 2: // C + 3 + 6
                 return {
-                        S::Tap (SDL_SCANCODE_C, SDLK_c, TAP),
+                        S::Tap (SDL_SCANCODE_C, SDLK_C, TAP),
                         S::Wait(GAP),
                         S::Tap (SDL_SCANCODE_3, SDLK_3, TAP),
                         S::Wait(GAP),
@@ -238,7 +238,7 @@ namespace macro {
 
             case 3: // C + 3 + 9
                 return {
-                        S::Tap (SDL_SCANCODE_C, SDLK_c, TAP),
+                        S::Tap (SDL_SCANCODE_C, SDLK_C, TAP),
                         S::Wait(GAP),
                         S::Tap (SDL_SCANCODE_3, SDLK_3, TAP),
                         S::Wait(GAP),
@@ -247,14 +247,14 @@ namespace macro {
 
             case 4: // C + 5
                 return {
-                        S::Tap (SDL_SCANCODE_C, SDLK_c, TAP),
+                        S::Tap (SDL_SCANCODE_C, SDLK_C, TAP),
                         S::Wait(GAP),
                         S::Tap (SDL_SCANCODE_5, SDLK_5, TAP),
                 };
 
             case 5: // C + 3 + 5
                 return {
-                        S::Tap (SDL_SCANCODE_C, SDLK_c, TAP),
+                        S::Tap (SDL_SCANCODE_C, SDLK_C, TAP),
                         S::Wait(GAP),
                         S::Tap (SDL_SCANCODE_3, SDLK_3, TAP),
                         S::Wait(GAP),
@@ -285,21 +285,23 @@ static void NB_cancelMacros() {
 }
 
 static void NB_mouseStart() {
-    SDL_SetRelativeMouseMode(SDL_TRUE);
+    if (SDL_Window* w = SDL_GetWindowFromID(ensure_window_id()))
+        SDL_SetWindowRelativeMouseMode(w, true);   // antes: SDL_SetRelativeMouseMode(true)
     g_mouse_active.store(true);
     g_last_ms = SDL_GetTicks();
-    #ifdef ENABLE_LOG
+#ifdef ENABLE_LOG
     LOGI("mouseStart");
-    #endif
+#endif
 }
 
 static void NB_mouseStop() {
     g_mouse_active.store(false);
-    SDL_SetRelativeMouseMode(SDL_FALSE);
+    if (SDL_Window* w = SDL_GetWindowFromID(ensure_window_id()))
+        SDL_SetWindowRelativeMouseMode(w, false);  // antes: SDL_SetRelativeMouseMode(false)
     g_vx.store(0); g_vy.store(0);
-    #ifdef ENABLE_LOG
+#ifdef ENABLE_LOG
     LOGI("mouseStop");
-    #endif
+#endif
 }
 
 static void NB_mouseTick(jfloat nx, jfloat ny) {
@@ -313,7 +315,7 @@ static void NB_mouseTick(jfloat nx, jfloat ny) {
 
     float speed = baseSpeed * std::pow(mag, accelExp);
 
-    Uint32 now = SDL_GetTicks();
+    Uint64 now = SDL_GetTicks();          // SDL3: devuelve Uint64
     float dt = (now - g_last_ms) / 1000.0f;
     g_last_ms = now;
 
@@ -323,7 +325,7 @@ static void NB_mouseTick(jfloat nx, jfloat ny) {
     if (dx == 0 && dy == 0) return;
 
     SDL_Event e{};
-    e.type = SDL_MOUSEMOTION;
+    e.type = SDL_EVENT_MOUSE_MOTION;
     e.motion.windowID = ensure_window_id();
     e.motion.state = 0; // no buttons
     e.motion.x = 0; // using relative
@@ -336,12 +338,14 @@ static void NB_mouseTick(jfloat nx, jfloat ny) {
 
 static void setTextInputEnabled(bool enabled)
 {
-    if (enabled) SDL_StartTextInput();
-    else SDL_StopTextInput();
+    SDL_Window* w = SDL_GetWindowFromID(ensure_window_id());
+    if (!w) return;                       // en SDL3 el text input es por-ventana
+    if (enabled) SDL_StartTextInput(w);
+    else         SDL_StopTextInput(w);
 }
 
 #define NB_DEFINE_JNI(PREFIX) \
-extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_setTextInputEnabled(jboolean enabled) { setTextInputEnabled(enabled); } \
+extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_setTextInputEnabled(JNIEnv*, jclass, jboolean enabled) { setTextInputEnabled(enabled); } \
 extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_onButton(JNIEnv*, jclass, jint code, jboolean down) { NB_onButton(code, down); } \
 extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_runMacro(JNIEnv*, jclass, jint id) { NB_runMacro(id); } \
 extern "C" JNIEXPORT void JNICALL Java_##PREFIX##_cancelMacros(JNIEnv*, jclass) { NB_cancelMacros(); } \

@@ -73,7 +73,7 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
     @Override
     protected String[] getLibraries() {
         ArrayList<String> libs = new ArrayList<>();
-        libs.add("SDL2");
+        libs.add("SDL3");
 
         Intent i = getIntent();
         String engineBase = (i != null) ? i.getStringExtra("engineLibName") : null;

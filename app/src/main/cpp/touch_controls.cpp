@@ -97,6 +97,24 @@ static void NB_onButton(jint code, jboolean down) {
         case 6: // ALT+A
             push_alt_combo(down, SDL_SCANCODE_A, SDLK_A);
             break;
+        case 7: // F1
+            push_key(down, SDL_SCANCODE_F1, SDLK_F1);
+            break;
+        case 8: // F2
+            push_key(down, SDL_SCANCODE_F2, SDLK_F2);
+            break;
+        case 9: // F4
+            push_key(down, SDL_SCANCODE_F4, SDLK_F4);
+            break;
+        case 10: // 0
+            push_key(down, SDL_SCANCODE_0, SDLK_0);
+            break;
+        case 11: // Left Alt
+            push_key(down, SDL_SCANCODE_LALT, SDLK_LALT);
+            break;
+        case 12: // J
+            push_key(down, SDL_SCANCODE_J, SDLK_J);
+            break;
 
             //Weapons Area
         case 20: // Space
@@ -144,6 +162,38 @@ static void NB_onButton(jint code, jboolean down) {
             push_key(down, SDL_SCANCODE_BACKSPACE, SDLK_BACKSPACE);
             break;
 
+        // Communications
+        case 50:
+            push_key(down, SDL_SCANCODE_C, SDLK_C);
+            break;
+        case 51:
+            push_key(down, SDL_SCANCODE_1, SDLK_1);
+            break;
+        case 52:
+            push_key(down, SDL_SCANCODE_2, SDLK_2);
+            break;
+        case 53:
+            push_key(down, SDL_SCANCODE_3, SDLK_3);
+            break;
+        case 54:
+            push_key(down, SDL_SCANCODE_4, SDLK_4);
+            break;
+        case 55:
+            push_key(down, SDL_SCANCODE_5, SDLK_5);
+            break;
+        case 56:
+            push_key(down, SDL_SCANCODE_6, SDLK_6);
+            break;
+        case 57:
+            push_key(down, SDL_SCANCODE_7, SDLK_7);
+            break;
+        case 58:
+            push_key(down, SDL_SCANCODE_8, SDLK_8);
+            break;
+        case 59:
+            push_key(down, SDL_SCANCODE_9, SDLK_9);
+            break;
+
             //Targeting Area
         case 30: // Y
             push_key(down, SDL_SCANCODE_Y, SDLK_Y);
@@ -163,7 +213,7 @@ static void NB_onButton(jint code, jboolean down) {
         case 35: // T
             push_key(down, SDL_SCANCODE_T, SDLK_T);
             break;
-        case 36: // T
+        case 36: // S
             push_key(down, SDL_SCANCODE_S, SDLK_S);
             break;
 

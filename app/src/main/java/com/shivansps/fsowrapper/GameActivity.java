@@ -5,12 +5,19 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowManager;
 import com.shivansps.fsowrapper.overlay.RadialDpadView;
+import com.shivansps.fsowrapper.overlay.RadialActionView;
+import com.shivansps.fsowrapper.overlay.HudStyle;
 import com.shivansps.fsowrapper.tts.TTSManager;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import android.view.*;
 import android.widget.*;
 import com.shivansps.fsowrapper.overlay.NativeBridge;
 import java.lang.ref.WeakReference;
+import android.util.SparseIntArray;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -19,12 +26,32 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
 
     private static String _workingFolder = "";
     private static WeakReference<View> _overlayRef = null;
+    private static WeakReference<GameActivity> _activityRef = null;
     private static Boolean _pendingVisibility = null;
     private static Boolean _forceOverlayOn = false;
+
+    private final SparseIntArray heldKeyCounts = new SparseIntArray();
+    private final ArrayList<RadialActionView> radialControls = new ArrayList<>();
+    private RadialDpadView dpadControl;
+    private Button[] hudButtons = new Button[0];
+    private View[] topControls = new View[0];
+    private View[] levelOneControls = new View[0];
+    private View[] levelTwoControls = new View[0];
+    private View[] levelThreeControls = new View[0];
+    private int hudMode = 0;
 
     /* FSO API */
 
     public static String getWorkingFolder() { return _workingFolder; }
+
+    public static void setOverlayOpacity(float opacity) {
+        HudStyle.setBackgroundOpacity(opacity);
+        GameActivity activity = _activityRef != null ? _activityRef.get() : null;
+        View overlay = _overlayRef != null ? _overlayRef.get() : null;
+        if (activity != null && overlay != null) {
+            overlay.post(activity::refreshHudAppearance);
+        }
+    }
 
     public static void enableOverlay() {
         if (_forceOverlayOn) return;
@@ -40,7 +67,11 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         if (_forceOverlayOn) return;
         View overlay = _overlayRef != null ? _overlayRef.get() : null;
         if (overlay != null) {
-            overlay.post(() -> overlay.setVisibility(View.GONE));
+            GameActivity activity = _activityRef != null ? _activityRef.get() : null;
+            overlay.post(() -> {
+                if (activity != null) activity.releaseOverlayInputs();
+                overlay.setVisibility(View.GONE);
+            });
         } else {
             _pendingVisibility = false;
         }
@@ -102,10 +133,12 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
         }
         TTSManager.init(this);
         super.onCreate(savedInstanceState);
+        _activityRef = new WeakReference<>(this);
         Intent i = getIntent();
         if(i != null)
         {
             _forceOverlayOn = i.getBooleanExtra("forceTouchOverlay", false);
+            if(_forceOverlayOn) HudStyle.ensureVisible();
             _workingFolder = i.getStringExtra("workingFolder");
             getWindow().getDecorView().post(this::setupOverlayFromXml);
         }
@@ -118,11 +151,11 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
             switch (e.getAction()) {
                 case KeyEvent.ACTION_DOWN:
                     if (e.getRepeatCount() == 0) {
-                        NativeBridge.onButton(NativeBridge.CODE_ESC, true);
+                        setKeyPressed(NativeBridge.CODE_ESC, true);
                     }
                     return true;
                 case KeyEvent.ACTION_UP:
-                    NativeBridge.onButton(NativeBridge.CODE_ESC, false);
+                    setKeyPressed(NativeBridge.CODE_ESC, false);
                     return true;
             }
             return true;
@@ -131,6 +164,7 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
     }
 
     @Override protected void onPause() {
+        releaseOverlayInputs();
         TTSManager.stop();
         super.onPause();
     }
@@ -161,6 +195,7 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
     {
         _workingFolder = "";
         _overlayRef  = null;
+        _activityRef = null;
         _pendingVisibility = null;
         TTSManager.shutdown();
         super.onDestroy();
@@ -193,190 +228,267 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private View.OnTouchListener makeTouchHandler(int code) {
+    private View.OnTouchListener makeTouchHandler(int... codes) {
+        final int[] actionCodes = Arrays.copyOf(codes, codes.length);
         return (v, e) -> {
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     v.setPressed(true);
-                    NativeBridge.onButton(code, true);
+                    setKeysPressed(actionCodes, true);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     v.setPressed(false);
-                    NativeBridge.onButton(code, false);
+                    setKeysPressed(actionCodes, false);
                     return true;
             }
             return false;
         };
     }
 
+    @SuppressLint("ClickableViewAccessibility")
+    private void bindHoldButton(Button button, int... codes) {
+        final int[] actionCodes = Arrays.copyOf(codes, codes.length);
+        button.setOnTouchListener(makeTouchHandler(actionCodes));
+        button.setOnClickListener(view -> {
+            setKeysPressed(actionCodes, true);
+            view.postDelayed(() -> setKeysPressed(actionCodes, false), 45L);
+        });
+    }
+
+    private void setKeysPressed(int[] codes, boolean pressed) {
+        if (pressed) {
+            for (int code : codes) setKeyPressed(code, true);
+        } else {
+            for (int index = codes.length - 1; index >= 0; index--) {
+                setKeyPressed(codes[index], false);
+            }
+        }
+    }
+
+    private void setKeyPressed(int code, boolean pressed) {
+        int count = heldKeyCounts.get(code, 0);
+        if (pressed) {
+            heldKeyCounts.put(code, count + 1);
+            if (count == 0) NativeBridge.onButton(code, true);
+        } else if (count > 0) {
+            if (count == 1) {
+                heldKeyCounts.delete(code);
+                NativeBridge.onButton(code, false);
+            } else {
+                heldKeyCounts.put(code, count - 1);
+            }
+        }
+    }
+
+    private void dispatchRadialTransition(List<RadialActionView.Action> releasedActions,
+                                          List<RadialActionView.Action> pressedActions) {
+        SparseIntArray deltas = new SparseIntArray();
+        for (RadialActionView.Action releasedAction : releasedActions) {
+            for (int code : releasedAction.getKeyCodes()) {
+                deltas.put(code, deltas.get(code, 0) - 1);
+            }
+        }
+        for (RadialActionView.Action pressedAction : pressedActions) {
+            for (int code : pressedAction.getKeyCodes()) {
+                deltas.put(code, deltas.get(code, 0) + 1);
+            }
+        }
+
+        // Release removed keys before pressing new ones, but leave shared keys
+        // untouched so sliding Primary <-> Both <-> Secondary has no pulse.
+        for (int index = 0; index < deltas.size(); index++) {
+            int delta = deltas.valueAt(index);
+            for (int count = 0; count < -delta; count++) {
+                setKeyPressed(deltas.keyAt(index), false);
+            }
+        }
+        for (int index = 0; index < deltas.size(); index++) {
+            int delta = deltas.valueAt(index);
+            for (int count = 0; count < delta; count++) {
+                setKeyPressed(deltas.keyAt(index), true);
+            }
+        }
+    }
+
+    private void releaseOverlayInputs() {
+        for (RadialActionView control : radialControls) control.releaseAllActions();
+        if (dpadControl != null) dpadControl.releaseAllControls();
+        for (View control : topControls) control.setPressed(false);
+        while (heldKeyCounts.size() > 0) {
+            int code = heldKeyCounts.keyAt(heldKeyCounts.size() - 1);
+            heldKeyCounts.removeAt(heldKeyCounts.size() - 1);
+            NativeBridge.onButton(code, false);
+        }
+    }
+
+    private void refreshHudAppearance() {
+        for (Button button : hudButtons) HudStyle.applyTo(button);
+        for (RadialActionView control : radialControls) control.invalidate();
+        if (dpadControl != null) dpadControl.invalidate();
+    }
+
+    private RadialActionView.Action action(String label, int... codes) {
+        return new RadialActionView.Action(label, codes);
+    }
+
+    private RadialActionView.Action action(String label, String description, int... codes) {
+        return new RadialActionView.Action(label, description, codes);
+    }
+
+    private void configureWheel(RadialActionView wheel,
+                                RadialActionView.Action[] center,
+                                RadialActionView.Action[] outer) {
+        wheel.setOnActionListener(this::dispatchRadialTransition);
+        wheel.setActions(Arrays.asList(center), Arrays.asList(outer));
+        radialControls.add(wheel);
+    }
+
+    private void applyHudMode() {
+        setControlGroupVisible(levelOneControls, hudMode >= 1);
+        setControlGroupVisible(levelTwoControls, hudMode >= 2);
+        setControlGroupVisible(levelThreeControls, hudMode >= 3);
+    }
+
+    private static void setControlGroupVisible(View[] controls, boolean visible) {
+        for (View control : controls) {
+            control.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
     @SuppressLint({"ClickableViewAccessibility", "DiscouragedApi"})
     private void setupOverlayFromXml()
     {
-        int layoutId = getResources().getIdentifier("overlay_controls", "layout", getPackageName());
-        View overlay = getLayoutInflater().inflate(layoutId, null);
-
-        Button btnToggle = overlay.findViewById(getResources().getIdentifier("btnToggle", "id", getPackageName()));
-        RadialDpadView dpad = overlay.findViewById(getResources().getIdentifier("dpad", "id", getPackageName()));
-
-
-        // Button listeners
-        Button btnKyb = overlay.findViewById(getResources().getIdentifier("btnKyb", "id", getPackageName()));
-        btnKyb.setOnClickListener(v -> toggleSdlKeyboard(overlay));
-        // ESC
-        Button btnEsc = overlay.findViewById(getResources().getIdentifier("btnEsc", "id", getPackageName()));
-        btnEsc.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_ESC));
-
-        // F3
-        Button btnF3 = overlay.findViewById(getResources().getIdentifier("btnF3", "id", getPackageName()));
-        btnF3.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_F3));
-
-        // ALT+J
-        Button btnALTJ = overlay.findViewById(getResources().getIdentifier("btnAltJ", "id", getPackageName()));
-        btnALTJ.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_ALT_J));
-
-        // ALT+M
-        Button btnALTM = overlay.findViewById(getResources().getIdentifier("btnAltM", "id", getPackageName()));
-        btnALTM.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_ALT_M));
-
-        // ALT+H
-        Button btnALTH = overlay.findViewById(getResources().getIdentifier("btnAltH", "id", getPackageName()));
-        btnALTH.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_ALT_H));
-
-        // ALT+A
-        Button btnAltA = overlay.findViewById(getResources().getIdentifier("btnAltA", "id", getPackageName()));
-        btnAltA.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_ALT_A));
-
-        // Space
-        Button btnSpace = overlay.findViewById(getResources().getIdentifier("btnFireS", "id", getPackageName()));
-        btnSpace.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_SPACE));
-
-        // LCtrl
-        Button btnLCtrl = overlay.findViewById(getResources().getIdentifier("btnFireP", "id", getPackageName()));
-        btnLCtrl.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_CTRL));
-
-        // CycleP
-        Button btnCycleP = overlay.findViewById(getResources().getIdentifier("btnCycleP", "id", getPackageName()));
-        btnCycleP.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_CYCLE_P));
-
-        // CycleS
-        Button btnCycleS = overlay.findViewById(getResources().getIdentifier("btnCycleS", "id", getPackageName()));
-        btnCycleS.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_CYCLE_S));
-
-        // Tab
-        Button btnTab = overlay.findViewById(getResources().getIdentifier("btnTab", "id", getPackageName()));
-        btnTab.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_TAB));
-
-        // +
-        Button btnPlus = overlay.findViewById(getResources().getIdentifier("btnPlus", "id", getPackageName()));
-        btnPlus.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_PLUS));
-
-        // -
-        Button btnMinus = overlay.findViewById(getResources().getIdentifier("btnMinus", "id", getPackageName()));
-        btnMinus.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_MINUS));
-
-        // Q
-        Button btnQ = overlay.findViewById(getResources().getIdentifier("btnQ", "id", getPackageName()));
-        btnQ.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_Q));
-
-        // -
-        Button btnX = overlay.findViewById(getResources().getIdentifier("btnX", "id", getPackageName()));
-        btnX.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_X));
-
-        // Y
-        Button btnY = overlay.findViewById(getResources().getIdentifier("btnY", "id", getPackageName()));
-        btnY.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_Y));
-
-        // H
-        Button btnH = overlay.findViewById(getResources().getIdentifier("btnH", "id", getPackageName()));
-        btnH.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_H));
-
-        // B
-        Button btnB = overlay.findViewById(getResources().getIdentifier("btnB", "id", getPackageName()));
-        btnB.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_B));
-
-        // E
-        Button btnE = overlay.findViewById(getResources().getIdentifier("btnE", "id", getPackageName()));
-        btnE.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_E));
-
-        // F
-        Button btnF = overlay.findViewById(getResources().getIdentifier("btnF", "id", getPackageName()));
-        btnF.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_F));
-
-        // T
-        Button btnT = overlay.findViewById(getResources().getIdentifier("btnT", "id", getPackageName()));
-        btnT.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_T));
-
-        // M
-        Button btnM = overlay.findViewById(getResources().getIdentifier("btnM", "id", getPackageName()));
-        btnM.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_M));
-
-        // S
-        Button btnS = overlay.findViewById(getResources().getIdentifier("btnS", "id", getPackageName()));
-        btnS.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_S));
-
-        // A
-        Button btnA = overlay.findViewById(getResources().getIdentifier("btnA", "id", getPackageName()));
-        btnA.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_A));
-
-        // Z
-        Button btnZ = overlay.findViewById(getResources().getIdentifier("btnZ", "id", getPackageName()));
-        btnZ.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_Z));
-
-        // Return
-        Button btnRet = overlay.findViewById(getResources().getIdentifier("btnRet", "id", getPackageName()));
-        btnRet.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_BACKSPACE));
-
-        // Backslash
-        Button btnBackSlash = overlay.findViewById(getResources().getIdentifier("btnBackSlash", "id", getPackageName()));
-        btnBackSlash.setOnTouchListener(makeTouchHandler(NativeBridge.CODE_KEY_BACKSLASH));
-
-        // C+3+1
-        Button btnC31 = overlay.findViewById(getResources().getIdentifier("btnC31", "id", getPackageName()));
-        btnC31.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_3_1));
-
-        // C+3+5
-        Button btnC35 = overlay.findViewById(getResources().getIdentifier("btnC35", "id", getPackageName()));
-        btnC35.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_3_5));
-
-        // C+3+9
-        Button btnC39 = overlay.findViewById(getResources().getIdentifier("btnC39", "id", getPackageName()));
-        btnC39.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_3_9));
-
-        // C+5
-        Button btnC5 = overlay.findViewById(getResources().getIdentifier("btnC5", "id", getPackageName()));
-        btnC5.setOnClickListener(v -> NativeBridge.runMacro(NativeBridge.C_5));
-
-        // Buttons that visibility are controlled by the toggle
-        View[] topBar = new View[] {
-                btnEsc, btnF3, btnALTJ, btnALTM, btnALTH, btnAltA, btnC31, btnC35, btnC39, btnC5, btnKyb };
-
-        View[] joystick = new View[] {
-                dpad, btnSpace, btnLCtrl, btnCycleP, btnCycleS, btnTab, btnS, btnA, btnZ, btnRet,
-                btnPlus, btnMinus, btnX, btnQ, btnY, btnH, btnB, btnE, btnF, btnT, btnM, btnBackSlash };
-
-        btnToggle.setOnClickListener(v -> {
-            boolean topBarVisible = topBar[0].getVisibility() == View.VISIBLE;
-            boolean joystickVisible = joystick[0].getVisibility() == View.VISIBLE;
-
-            int newTop = (topBarVisible && joystickVisible) ? View.GONE : View.VISIBLE;
-            int newJoy = (topBarVisible && !joystickVisible) ? View.VISIBLE : View.GONE;
-
-            for (int i = 0; i < topBar.length; i++) topBar[i].setVisibility(newTop);
-            for (int i = 0; i < joystick.length; i++) joystick[i].setVisibility(newJoy);
+        ViewGroup contentRoot = findViewById(android.R.id.content);
+        View overlay = getLayoutInflater().inflate(R.layout.overlay_controls, contentRoot, false);
+        ViewCompat.setOnApplyWindowInsetsListener(overlay, (view, windowInsets) -> {
+            Insets safe = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.displayCutout()
+                            | WindowInsetsCompat.Type.systemGestures());
+            view.setPadding(safe.left, 0, safe.right, safe.bottom);
+            return windowInsets;
         });
 
-        for (View w : topBar) w.setVisibility(
-                View.GONE
-        );
-        for (View w : joystick) w.setVisibility(
-                View.GONE
-        );
+        Button btnToggle = overlay.findViewById(R.id.btnToggle);
+        Button btnKyb = overlay.findViewById(R.id.btnKyb);
+        btnKyb.setOnClickListener(v -> toggleSdlKeyboard(overlay));
+
+        Button btn0 = overlay.findViewById(R.id.btn0);
+        Button btnF1 = overlay.findViewById(R.id.btnF1);
+        Button btnF2 = overlay.findViewById(R.id.btnF2);
+        Button btnF3 = overlay.findViewById(R.id.btnF3);
+        Button btnF4 = overlay.findViewById(R.id.btnF4);
+        Button btnEsc = overlay.findViewById(R.id.btnEsc);
+        Button btnAltJ = overlay.findViewById(R.id.btnAltJ);
+        Button btnAltM = overlay.findViewById(R.id.btnAltM);
+        Button btnAltH = overlay.findViewById(R.id.btnAltH);
+        Button btnAltA = overlay.findViewById(R.id.btnAltA);
+
+        hudButtons = new Button[] {
+                btn0, btnF1, btnF2, btnF3, btnF4, btnEsc, btnToggle, btnKyb,
+                btnAltJ, btnAltM, btnAltH, btnAltA
+        };
+        refreshHudAppearance();
+
+        bindHoldButton(btn0, NativeBridge.CODE_KEY_0);
+        bindHoldButton(btnF1, NativeBridge.CODE_F1);
+        bindHoldButton(btnF2, NativeBridge.CODE_F2);
+        bindHoldButton(btnF3, NativeBridge.CODE_F3);
+        bindHoldButton(btnF4, NativeBridge.CODE_F4);
+        bindHoldButton(btnEsc, NativeBridge.CODE_ESC);
+        bindHoldButton(btnAltJ,
+                NativeBridge.CODE_KEY_ALT, NativeBridge.CODE_KEY_J);
+        bindHoldButton(btnAltM,
+                NativeBridge.CODE_KEY_ALT, NativeBridge.CODE_KEY_M);
+        bindHoldButton(btnAltH,
+                NativeBridge.CODE_KEY_ALT, NativeBridge.CODE_KEY_H);
+        bindHoldButton(btnAltA,
+                NativeBridge.CODE_KEY_ALT, NativeBridge.CODE_KEY_A);
+
+        RadialActionView communicationWheel = overlay.findViewById(R.id.communicationWheel);
+        configureWheel(communicationWheel,
+                new RadialActionView.Action[] {
+                        action("C", NativeBridge.CODE_KEY_C)
+                },
+                new RadialActionView.Action[] {
+                        action("1", NativeBridge.CODE_KEY_1), action("2", NativeBridge.CODE_KEY_2),
+                        action("3", NativeBridge.CODE_KEY_3), action("4", NativeBridge.CODE_KEY_4),
+                        action("5", NativeBridge.CODE_KEY_5), action("6", NativeBridge.CODE_KEY_6),
+                        action("7", NativeBridge.CODE_KEY_7), action("8", NativeBridge.CODE_KEY_8),
+                        action("9", NativeBridge.CODE_KEY_9)
+                });
+        communicationWheel.setInnerRadiusRatio(0.48f);
+        communicationWheel.setFirstOuterActionAngle(-70f);
+        communicationWheel.setLabelScale(0.92f);
+
+        RadialActionView targetWheel = overlay.findViewById(R.id.targetWheel);
+        configureWheel(targetWheel,
+                new RadialActionView.Action[] {
+                        action("B", NativeBridge.CODE_KEY_B),
+                        action("H", NativeBridge.CODE_KEY_H)
+                },
+                new RadialActionView.Action[] {
+                        action("Y", NativeBridge.CODE_KEY_Y), action("E", NativeBridge.CODE_KEY_E),
+                        action("S", NativeBridge.CODE_KEY_S), action("T", NativeBridge.CODE_KEY_T),
+                        action("F", NativeBridge.CODE_KEY_F)
+                });
+        targetWheel.setInnerRadiusRatio(0.55f);
+
+        RadialActionView weaponWheel = overlay.findViewById(R.id.weaponWheel);
+        configureWheel(weaponWheel,
+                new RadialActionView.Action[] {
+                        action("PRIMARY", "Fire primary", NativeBridge.CODE_KEY_CTRL),
+                        action("BOTH", "Fire primary and secondary",
+                                NativeBridge.CODE_KEY_CTRL, NativeBridge.CODE_KEY_SPACE),
+                        action("SECONDARY", "Fire secondary", NativeBridge.CODE_KEY_SPACE)
+                },
+                new RadialActionView.Action[] {
+                        action("+", NativeBridge.CODE_KEY_PLUS), action("-", NativeBridge.CODE_KEY_MINUS),
+                        action("Z", NativeBridge.CODE_KEY_Z), action("X", NativeBridge.CODE_KEY_X),
+                        action("Q", NativeBridge.CODE_KEY_Q),
+                        action("SW\nS", "Switch secondary weapon", NativeBridge.CODE_KEY_CYCLE_S),
+                        action("SW\nP", "Switch primary weapon", NativeBridge.CODE_KEY_CYCLE_P),
+                        action("\\", "Backslash", NativeBridge.CODE_KEY_BACKSLASH),
+                        action("\u2190", "Backspace", NativeBridge.CODE_KEY_BACKSPACE),
+                        action("M", NativeBridge.CODE_KEY_M), action("A", NativeBridge.CODE_KEY_A)
+                });
+        weaponWheel.setInnerRadiusRatio(0.59f);
+        weaponWheel.setCenterWeights(0.42f, 0.16f, 0.42f);
+        weaponWheel.setFirstOuterActionAngle(-106.36f);
+
+        dpadControl = overlay.findViewById(R.id.dpad);
+        dpadControl.setOnRingActionListener(
+                pressed -> setKeyPressed(NativeBridge.CODE_KEY_TAB, pressed));
+
+        topControls = new View[] {
+                btn0, btnF1, btnF2, btnF3, btnF4, btnEsc, btnKyb,
+                btnAltJ, btnAltM, btnAltH, btnAltA
+        };
+        levelOneControls = new View[] {
+                btnF1, btnF2, btnF3, btnF4, btnEsc, btnKyb,
+                btnAltJ, btnAltM, btnAltH, btnAltA
+        };
+        levelTwoControls = new View[] {
+                btn0, communicationWheel
+        };
+        levelThreeControls = new View[] {
+                targetWheel, weaponWheel, dpadControl
+        };
+
+        btnToggle.setOnClickListener(v -> {
+            releaseOverlayInputs();
+            hudMode = (hudMode + 1) % 4;
+            applyHudMode();
+        });
+        applyHudMode();
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT);
         addContentView(overlay, lp);
+        ViewCompat.requestApplyInsets(overlay);
         overlay.bringToFront();
         overlay.setElevation(10000f);
 

@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include "third_party/SDL3/SDL.h"
+#include "touch_text_input.h"
 
 #ifdef ENABLE_LOG
 #include <android/log.h>
@@ -37,6 +38,7 @@ static Uint32 ensure_window_id() {
 }
 
 static void push_key(jboolean down, SDL_Scancode sc, SDL_Keycode kc) {
+    const auto text_modifiers = touch_text_input::modifiers_for_key(sc, down != 0);
     SDL_Event e{};
     e.type       = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
     e.key.down   = (down != 0);
@@ -47,6 +49,7 @@ static void push_key(jboolean down, SDL_Scancode sc, SDL_Keycode kc) {
     e.key.windowID = ensure_window_id();
 
     bool ret = SDL_PushEvent(&e);
+    if (ret && down) touch_text_input::push(e.key.windowID, sc, text_modifiers);
 #ifdef ENABLE_LOG
     if (!ret) {                          // antes: ret != 1
         LOGW("SDL_PushEvent %s %s ret=%d windowID=%u err=%s",

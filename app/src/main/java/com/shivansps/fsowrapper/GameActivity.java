@@ -15,7 +15,9 @@ import android.view.*;
 import android.widget.*;
 import com.shivansps.fsowrapper.overlay.NativeBridge;
 import java.lang.ref.WeakReference;
+import android.util.Log;
 import android.util.SparseIntArray;
+import java.io.IOException;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -95,6 +97,7 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
     @Override
     protected String[] getArguments() {
         android.content.Intent i = getIntent();
+        prepareVulkanDriver(i);
         java.util.ArrayList<String> args = (i != null)
                 ? i.getStringArrayListExtra("fsoArgs")
                 : null;
@@ -103,6 +106,20 @@ public class GameActivity extends org.libsdl.app.SDLActivity {
             return new String[0];
         }
         return args.toArray(new String[0]);
+    }
+
+    private void prepareVulkanDriver(Intent intent) {
+        String driverId = intent == null ? null : intent.getStringExtra(VulkanDriver.EXTRA_ID);
+        if (driverId == null) return;
+
+        try {
+            if (VulkanDriver.find(this, driverId).configure(this)) return;
+            Log.w("FSOVulkanDriver", "Custom Vulkan loader could not be initialized");
+        } catch (IOException | UnsatisfiedLinkError e) {
+            Log.w("FSOVulkanDriver", "Custom Vulkan loader unavailable", e);
+        }
+        runOnUiThread(() -> Toast.makeText(
+                this, R.string.vulkan_driver_system_fallback, Toast.LENGTH_LONG).show());
     }
 
     @Override

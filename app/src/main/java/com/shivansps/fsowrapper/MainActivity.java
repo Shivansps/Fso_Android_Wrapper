@@ -1,5 +1,6 @@
 package com.shivansps.fsowrapper;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -18,11 +19,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import android.content.Intent;
 import android.os.Bundle;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -34,7 +38,19 @@ public class MainActivity extends AppCompatActivity {
     private static final String demo_filename = "fs2_demo.vpc"; //empty to disable demo install function
     private static final String LOG_RELATIVE_PATH = "data/fs2_open.log";
     private static final String defaultArgs = "-fps -threads 0 -no_large_shaders";
+    private static final int RENDERER_OPENGL = 0;
+    private static final int RENDERER_VULKAN_SYSTEM = 1;
+    private static final int RENDERER_VULKAN_CUSTOM = 2;
+    private static final String DRIVER_ID_PREF = "vulkan_driver_id";
+
     private Spinner spEngine;
+    private Spinner spRenderer;
+    private Button btnImportVulkanDriver;
+    private TextView driverStatus;
+    private VulkanDriver selectedDriver;
+    private boolean importingDriver;
+    private final ActivityResultLauncher<String> driverPicker = registerForActivityResult(
+            new ActivityResultContracts.GetContent(), this::importVulkanDriver);
     private Spinner spWorkingFolder;
     private RadioGroup rgRootSubdir;
     private String lastSelectedSubdir = "";
@@ -48,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
         if(!demo_filename.isEmpty()) CopyFs2Demo();
         LoadFSOVersions();
         DetectStorage();
+        setupRenderer();
         CreatePlayButton();
         setupOpenLogButton();
     }
@@ -63,19 +80,96 @@ public class MainActivity extends AppCompatActivity {
         spWorkingFolder.setAdapter(wfAdapter);
     }
 
+    private void setupRenderer() {
+        spRenderer = findViewById(R.id.spRenderer);
+        btnImportVulkanDriver = findViewById(R.id.btnImportVulkanDriver);
+        driverStatus = findViewById(R.id.vulkanDriverStatus);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.renderer_options, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spRenderer.setAdapter(adapter);
+
+        SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+        int previousMode = prefs.getBoolean("use_vulkan", false) ? RENDERER_VULKAN_SYSTEM : RENDERER_OPENGL;
+        spRenderer.setSelection(prefs.getInt("renderer_mode", previousMode));
+
+        String driverId = prefs.getString(DRIVER_ID_PREF, null);
+        if (driverId != null) {
+            try {
+                selectedDriver = VulkanDriver.find(this, driverId);
+                driverStatus.setText(selectedDriver.name);
+            } catch (IOException e) {
+                driverStatus.setText(e.getMessage());
+            }
+        }
+        spRenderer.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateDriverControls();
+            }
+
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        btnImportVulkanDriver.setOnClickListener(v -> driverPicker.launch("application/zip"));
+        updateDriverControls();
+    }
+
+    private void updateDriverControls() {
+        boolean custom = spRenderer.getSelectedItemPosition() == RENDERER_VULKAN_CUSTOM;
+        btnImportVulkanDriver.setVisibility(custom ? View.VISIBLE : View.GONE);
+        btnImportVulkanDriver.setEnabled(!importingDriver);
+        driverStatus.setVisibility(custom ? View.VISIBLE : View.GONE);
+    }
+
+    private void importVulkanDriver(Uri uri) {
+        if (uri == null) return;
+
+        importingDriver = true;
+        updateDriverControls();
+        driverStatus.setText(R.string.vulkan_driver_importing);
+        Context context = getApplicationContext();
+        SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+        new Thread(() -> {
+            try {
+                VulkanDriver driver = VulkanDriver.importPackage(context, uri);
+                prefs.edit().putString(DRIVER_ID_PREF, driver.directory.getName()).apply();
+                runOnUiThread(() -> {
+                    if (isDestroyed()) return;
+                    selectedDriver = driver;
+                    driverStatus.setText(driver.name);
+                    importingDriver = false;
+                    updateDriverControls();
+                });
+            } catch (IOException | IllegalArgumentException | SecurityException e) {
+                runOnUiThread(() -> {
+                    if (isDestroyed()) return;
+                    String message = getString(R.string.vulkan_driver_import_failed, e.getMessage());
+                    driverStatus.setText(selectedDriver == null ? message : selectedDriver.name);
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                    importingDriver = false;
+                    updateDriverControls();
+                });
+            }
+        }, "VulkanDriverImport").start();
+    }
+
     private void CreatePlayButton()
     {
         Button btnPlay = findViewById(R.id.btnPlay);
         EditText etArgs = findViewById(R.id.etArgs);
         CheckBox touchControls = findViewById(R.id.touchControlsCheckBox);
-        CheckBox useVulkan = findViewById(R.id.useVulkan);
 
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
         etArgs.setText(sharedPref.getString("fso_args", defaultArgs));
         touchControls.setChecked(sharedPref.getBoolean("touch_overlay", false));
-        useVulkan.setChecked(sharedPref.getBoolean("use_vulkan", false));
 
         btnPlay.setOnClickListener(v -> {
+            int renderer = spRenderer.getSelectedItemPosition();
+            if (renderer == RENDERER_VULKAN_CUSTOM && (importingDriver || selectedDriver == null)) {
+                int message = importingDriver ? R.string.vulkan_driver_importing : R.string.vulkan_driver_missing;
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             // Click Play Logic
             EngineVariant chosen = (EngineVariant) spEngine.getSelectedItem();
             if (chosen == null) {
@@ -96,15 +190,20 @@ public class MainActivity extends AppCompatActivity {
             // delete gles shaders if they exist
             ensureAssetDeleted(shader_file_name, actualRootPath);
 
-            if (useVulkan.isChecked() && !containsFlag(extra, "-vulkan")) {
+            if (renderer != RENDERER_OPENGL && !containsFlag(extra, "-vulkan")) {
                 argv.add("-vulkan");
             }
 
-            sharedPref.edit().putString("fso_args", userLine).apply();
-            sharedPref.edit().putBoolean("touch_overlay", touchControls.isChecked()).apply();
-            sharedPref.edit().putBoolean("use_vulkan", useVulkan.isChecked()).apply();
+            sharedPref.edit()
+                    .putString("fso_args", userLine)
+                    .putBoolean("touch_overlay", touchControls.isChecked())
+                    .putInt("renderer_mode", renderer)
+                    .apply();
 
             Intent i = new Intent(this, GameActivity.class);
+            if (renderer == RENDERER_VULKAN_CUSTOM) {
+                i.putExtra(VulkanDriver.EXTRA_ID, selectedDriver.directory.getName());
+            }
             i.putExtra("engineLibName", chosen.baseName);
             i.putStringArrayListExtra("fsoArgs", argv);
             i.putExtra("forceTouchOverlay",touchControls.isChecked());

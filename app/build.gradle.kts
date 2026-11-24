@@ -18,6 +18,14 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
+                val driverTools = file(providers.gradleProperty("fsoAdrenotoolsDir")
+                    .getOrElse("src/main/cpp/third_party/libadrenotools"))
+                val driverToolsPath = if (driverTools.resolve("CMakeLists.txt").isFile) {
+                    driverTools.absolutePath.replace('\\', '/')
+                } else {
+                    ""
+                }
+                arguments += "-DFSO_ADRENOTOOLS_DIR=$driverToolsPath"
             }
         }
     }
@@ -40,6 +48,9 @@ android {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
+    }
+    packaging {
+        jniLibs.useLegacyPackaging = true
     }
     buildFeatures {
         viewBinding = true

@@ -73,11 +73,29 @@
 			android:layout_marginTop="24dp"
 			android:text="Play" />
 			
-		<CheckBox
-			android:id="@+id/useVulkan"
+		<TextView
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:text="Use Vulkan Renderer" />
+			android:text="@string/renderer_label" />
+
+		<Spinner
+			android:id="@+id/spRenderer"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content" />
+
+		<Button
+			android:id="@+id/btnImportVulkanDriver"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/vulkan_driver_import"
+			android:visibility="gone" />
+
+		<TextView
+			android:id="@+id/vulkanDriverStatus"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/vulkan_driver_missing"
+			android:visibility="gone" />
 
 		<CheckBox
 			android:id="@+id/touchControlsCheckBox"

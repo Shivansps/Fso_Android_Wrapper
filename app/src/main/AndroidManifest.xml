@@ -35,7 +35,6 @@
         android:hardwareAccelerated="true"
         android:isGame="true"
         android:allowAudioPlaybackCapture="true"
-        android:extractNativeLibs="true"
         android:theme="@style/Theme.FSOWrapper">
         <provider
             android:name="androidx.core.content.FileProvider"

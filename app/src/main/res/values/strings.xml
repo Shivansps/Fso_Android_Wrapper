@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">Freespace Open Wrapper</string>
+    <string name="renderer_label">Renderer</string>
+    <string-array name="renderer_options">
+        <item>OpenGL ES</item>
+        <item>Vulkan (system driver)</item>
+        <item>Vulkan (custom driver)</item>
+    </string-array>
+    <string name="vulkan_driver_import">Import driver ZIP</string>
+    <string name="vulkan_driver_importing">Importing Vulkan driver…</string>
+    <string name="vulkan_driver_missing">Import an AdrenoTools driver ZIP to use custom Vulkan.</string>
+    <string name="vulkan_driver_import_failed">Could not import driver. %1$s</string>
+    <string name="vulkan_driver_system_fallback">Custom Vulkan loader unavailable. Using the system driver.</string>
 </resources>

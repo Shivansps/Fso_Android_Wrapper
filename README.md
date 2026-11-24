@@ -19,6 +19,31 @@ Now this project has new objectives:<br />
 
 <br /><br />
 
+Optional custom Vulkan driver
+=============================
+
+To enable custom Vulkan drivers, clone AdrenoTools with its submodules
+before building the APK:
+
+```sh
+git clone --recursive https://github.com/bylaws/libadrenotools.git app/src/main/cpp/third_party/libadrenotools
+```
+
+For an existing AdrenoTools checkout, build with
+`./gradlew assembleDebug -PfsoAdrenotoolsDir=/path/to/libadrenotools`.
+The custom loader targets Android 9+ on ARM64.
+
+Choose **Vulkan (custom driver)**, import an AdrenoTools-format ZIP
+for the device's GPU, then press **Play**. The package must have a
+root-level `meta.json` with `libraryName` and the driver's `.so` files
+alongside it. Turnip packages use the Android Vulkan loader through
+AdrenoTools. A PanVK package with `libraryName` set to
+`libvulkan_panfrost.so` uses the driver's own Android presentation path.
+
+Look for `Using AdrenoTools loader` or `Using direct PanVK ICD` under
+`FSOVulkanDriver` in logcat. Builds with Vulkan device logging show the
+active driver in the FSO log.
+
 How to use it in Android Studio
 =======================
 
